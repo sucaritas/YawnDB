@@ -1,0 +1,6 @@
+﻿namespace YawnDB.Storage
+
+struct StorageLocation
+{
+}
+

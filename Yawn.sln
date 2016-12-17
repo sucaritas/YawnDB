@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 14.0.0.0
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YawnDB", "YawnDB\YawnDB.csproj", "{BA24655F-E374-4D45-B863-C4C2D006E8DA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YawnDB.Interfaces", "YawnDB.Interfaces\YawnDB.Interfaces.csproj", "{56FAD19F-95B5-49AA-9934-197B57ECE3B0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleYawnDB", "SampleYawnDB\SampleYawnDB.csproj", "{3432A433-CCAA-4766-B6CF-2259105CBF47}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleUsageOfAYawnDB", "SampleUsageOfAYawnDB\SampleUsageOfAYawnDB.csproj", "{AF7A1E74-C2A8-41DD-A145-F66D8278DE9C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YawnDataSchemas", "YawnDataSchemas\YawnDataSchemas.csproj", "{B0FD015C-7438-4506-8357-2976DA40AC71}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YawnDB.Tests", "YawnDB.Tests\YawnDB.Tests.csproj", "{571B56E9-99C1-47F6-8A38-91340134E29C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BA24655F-E374-4D45-B863-C4C2D006E8DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA24655F-E374-4D45-B863-C4C2D006E8DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA24655F-E374-4D45-B863-C4C2D006E8DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA24655F-E374-4D45-B863-C4C2D006E8DA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{56FAD19F-95B5-49AA-9934-197B57ECE3B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{56FAD19F-95B5-49AA-9934-197B57ECE3B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{56FAD19F-95B5-49AA-9934-197B57ECE3B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{56FAD19F-95B5-49AA-9934-197B57ECE3B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3432A433-CCAA-4766-B6CF-2259105CBF47}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3432A433-CCAA-4766-B6CF-2259105CBF47}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3432A433-CCAA-4766-B6CF-2259105CBF47}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3432A433-CCAA-4766-B6CF-2259105CBF47}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AF7A1E74-C2A8-41DD-A145-F66D8278DE9C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AF7A1E74-C2A8-41DD-A145-F66D8278DE9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AF7A1E74-C2A8-41DD-A145-F66D8278DE9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AF7A1E74-C2A8-41DD-A145-F66D8278DE9C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0FD015C-7438-4506-8357-2976DA40AC71}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0FD015C-7438-4506-8357-2976DA40AC71}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0FD015C-7438-4506-8357-2976DA40AC71}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0FD015C-7438-4506-8357-2976DA40AC71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{571B56E9-99C1-47F6-8A38-91340134E29C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{571B56E9-99C1-47F6-8A38-91340134E29C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{571B56E9-99C1-47F6-8A38-91340134E29C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{571B56E9-99C1-47F6-8A38-91340134E29C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

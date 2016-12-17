@@ -1,0 +1,9 @@
+﻿namespace YawnDB.Storage.BlockStorage
+
+using SortedSet<T> = set<T>;
+
+struct FreeBlocks
+{
+    0: SortedSet<int64> Blocks;
+}
+

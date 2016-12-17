@@ -1,0 +1,8 @@
+﻿import "..\StorageLocation.bond"
+
+namespace YawnDB.Storage.BlockStorage
+
+struct BlockStorageLocation : YawnDB.Storage.StorageLocation
+{
+    0: int64 Address;
+}

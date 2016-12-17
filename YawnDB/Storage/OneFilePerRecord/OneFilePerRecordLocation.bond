@@ -1,0 +1,9 @@
+﻿namespace YawnDB.Storage.OneFilePerRecord
+
+struct OneFilePerRecordLocation
+{
+    0: uint64 Partition;
+	1: uint64 Segment;
+	2: uint64 Index;
+}
+
