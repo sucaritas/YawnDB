@@ -1,0 +1,8 @@
+﻿namespace YawnDB
+
+struct YawnSchema
+{
+	[Index("YawnDB.Index.HashKey.HashKeyIndex,YawnKeyIndex, 0")]
+    0: int64 Id;
+}
+

@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<DirectedGraph xmlns="http://schemas.microsoft.com/vs/2009/dgml">
+  <Nodes>
+    <Node Id="UserDataBase" Bounds="-1592.49832275391,-787.809989013672,92.8366666666666,25.96" UseManualLocation="True" />
+    <Node Id="Yawn.Interfaces" Bounds="-1343.43666666667,-952.04,101.023333333333,25.96" UseManualLocation="True" />
+    <Node Id="YawnDB" Bounds="-1062,-780,62.4400000000001,25.96" UseManualLocation="True" />
+    <Node Id="YawnDataSchemas" Bounds="-1365.93666666667,-657.54,118.36,25.96" UseManualLocation="True" />
+  </Nodes>
+  <Links>
+    <Link Source="Yawn.Interfaces" Target="UserDataBase" Bounds="-1518.52139785359,-926.079997558594,205.588179224859,133.371840231308" />
+    <Link Source="Yawn.Interfaces" Target="YawnDB" Bounds="-1273.14678510848,-926.079997558594,215.064247990008,141.141942139144" />
+    <Link Source="YawnDB" Target="UserDataBase" Bounds="-1490.66265624242,-773.990069945534,428.662626945549,6.49690383417931" />
+    <Link Source="YawnDataSchemas" Target="UserDataBase" Bounds="-1514.32916288645,-757.547192036569,183.726522967526,100.007194477975" />
+    <Link Source="YawnDataSchemas" Target="YawnDB" Bounds="-1277.50484095596,-750.496064919044,209.486394080715,92.9560673604498" />
+  </Links>
+  <Properties>
+    <Property Id="Bounds" DataType="System.Windows.Rect" />
+    <Property Id="UseManualLocation" DataType="System.Boolean" />
+  </Properties>
+</DirectedGraph>

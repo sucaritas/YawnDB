@@ -1,0 +1,20 @@
+﻿import "YawnSchema.bond"
+import "ReferenceTo\Referencing.bond"
+
+namespace School
+
+struct Classes;
+
+struct Student : YawnDB.YawnSchema
+{
+    1: string FirstName;
+    2: string LastName;
+    3: int32 Age;
+	4: YawnDB.Referencing<School.Classes> Classes;
+}
+
+struct Classes : YawnDB.YawnSchema
+{
+    1: string Name;
+	2: YawnDB.Referencing<School.Student> Students;
+}

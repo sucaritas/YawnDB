@@ -1,0 +1,7 @@
+﻿namespace YawnDB
+
+struct Referencing<T>
+{
+    0: list<int64> RefrencedIds;
+}
+

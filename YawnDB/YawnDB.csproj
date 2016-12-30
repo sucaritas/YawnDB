@@ -96,9 +96,9 @@
     <BondCodegen Include="Storage\StorageLocation.bond" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\YawnDataSchemas\YawnDataSchemas.csproj">
-      <Project>{b0fd015c-7438-4506-8357-2976da40ac71}</Project>
-      <Name>YawnDataSchemas</Name>
+    <ProjectReference Include="..\Yawn.DataSchemas\Yawn.DataSchemas.csproj">
+      <Project>{aded1921-6dea-4dce-a31e-5f915d633124}</Project>
+      <Name>Yawn.DataSchemas</Name>
     </ProjectReference>
     <ProjectReference Include="..\YawnDB.Interfaces\YawnDB.Interfaces.csproj">
       <Project>{56fad19f-95b5-49aa-9934-197b57ece3b0}</Project>

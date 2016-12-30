@@ -62,6 +62,14 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
+    <Reference Include="YawnDB, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\YawnDB\bin\Debug\YawnDB.dll</HintPath>
+    </Reference>
+    <Reference Include="YawnDB.Interfaces, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\YawnDB\bin\Debug\YawnDB.Interfaces.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MyDataBase.cs" />
@@ -75,17 +83,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\YawnDataSchemas\YawnDataSchemas.csproj">
+    <ProjectReference Include="..\SampleDataSchemas\SampleDataSchemas.csproj">
       <Project>{b0fd015c-7438-4506-8357-2976da40ac71}</Project>
-      <Name>YawnDataSchemas</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\YawnDB.Interfaces\YawnDB.Interfaces.csproj">
-      <Project>{56fad19f-95b5-49aa-9934-197b57ece3b0}</Project>
-      <Name>YawnDB.Interfaces</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\YawnDB\YawnDB.csproj">
-      <Project>{ba24655f-e374-4d45-b863-c4c2d006e8da}</Project>
-      <Name>YawnDB</Name>
+      <Name>SampleDataSchemas</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

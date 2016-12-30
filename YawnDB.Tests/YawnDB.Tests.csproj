@@ -55,10 +55,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\YawnDataSchemas\YawnDataSchemas.csproj">
-      <Project>{b0fd015c-7438-4506-8357-2976da40ac71}</Project>
-      <Name>YawnDataSchemas</Name>
-    </ProjectReference>
     <ProjectReference Include="..\YawnDB.Interfaces\YawnDB.Interfaces.csproj">
       <Project>{56fad19f-95b5-49aa-9934-197b57ece3b0}</Project>
       <Name>YawnDB.Interfaces</Name>

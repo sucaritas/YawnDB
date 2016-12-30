@@ -5,16 +5,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{56FAD19F-95B5-49AA-9934-197B57ECE3B0}</ProjectGuid>
+    <ProjectGuid>{ADED1921-6DEA-4DCE-A31E-5F915D633124}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>YawnDB.Interfaces</RootNamespace>
-    <AssemblyName>YawnDB.Interfaces</AssemblyName>
+    <RootNamespace>YawnDataSchemas</RootNamespace>
+    <AssemblyName>YawnDataSchemas</AssemblyName>
     <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -68,27 +68,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IIdexArguments.cs" />
-    <Compile Include="IIndex.cs" />
-    <Compile Include="IReference.cs" />
-    <Compile Include="IReferenceTo.cs" />
-    <Compile Include="IStorage.cs" />
-    <Compile Include="IStorageLocation.cs" />
-    <Compile Include="IStorageOf.cs" />
-    <Compile Include="IYawn.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="YawnBaseSchema.bond">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Yawn.DataSchemas\Yawn.DataSchemas.csproj">
-      <Project>{aded1921-6dea-4dce-a31e-5f915d633124}</Project>
-      <Name>Yawn.DataSchemas</Name>
-    </ProjectReference>
+    <BondCodegen Include="YawnSchema.bond" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

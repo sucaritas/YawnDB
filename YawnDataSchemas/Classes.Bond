@@ -1,9 +1,0 @@
-﻿import "YawnSchema.bond"
-
-namespace School
-
-struct Classes : YawnDB.YawnSchema
-{
-    1: string Name;
-	//2: ReferenceTo<Students> Students;
-}
