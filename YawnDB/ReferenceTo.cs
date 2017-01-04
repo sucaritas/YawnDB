@@ -54,18 +54,12 @@
         public IQueryable<TE> CreateQuery<TE>(Expression expression)
         {
             var tp = typeof(TE);
-            var nodeType = expression.NodeType;
-
-            switch(nodeType)
+            if (tp == typeof(T))
             {
-                case ExpressionType.Call:
-
-                    break;
-                default:
-                    throw new NotImplementedException(nodeType + "is not supported");
+                return (IOrderedQueryable<TE>)this;
             }
 
-            return (IOrderedQueryable<TE>)this;
+            return this.Execute<IEnumerable<TE>>(expression).AsQueryable();
         }
         public object Execute(Expression expression)
         {

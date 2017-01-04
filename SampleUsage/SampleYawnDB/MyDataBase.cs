@@ -34,8 +34,8 @@ namespace SampleYawnDB
         public MyDataBase(string databasePath) : base("SampleDatabase", databasePath)
         {
             this.DatabasePath = databasePath;
-            //this.RegisterSchema<Student>(new ReferenceTo<Student>(), new BlockStorage<Student>(this, 256, 10000));
-            this.RegisterSchema<Student>(new ReferenceTo<Student>(), new MemStorage<Student>(this));
+            this.RegisterSchema<Student>(new ReferenceTo<Student>(), new BlockStorage<Student>(this, 256, 10000));
+            //this.RegisterSchema<Student>(new ReferenceTo<Student>(), new MemStorage<Student>(this));
             this.RegisterSchema<Classes>();
         }
     }

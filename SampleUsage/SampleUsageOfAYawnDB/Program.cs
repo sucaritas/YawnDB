@@ -76,10 +76,14 @@
 
                 timer.Reset();
                 timer.Start();
-                var student = myDB.Students.First();
-                var results = myDB.Students.First().Classes.ToArray();
+                var res = myDB.Students.Select(x => x.FirstName);
+                var results = res.ToArray();
                 timer.Stop();
-                Console.WriteLine("Enumerated ALL ("+ results .Length.ToString("0,0")+ ") in  " + timer.ElapsedMilliseconds+"ms");
+                Console.WriteLine("Enumerated ALL ("+ results.Length.ToString("0,0")+ ") in  " + timer.ElapsedMilliseconds+"ms");
+                foreach (var st in results)
+                {
+                    Console.WriteLine(st);
+                }
                 Console.WriteLine("___________________________________________________________________");
 
                 //timer.Reset();

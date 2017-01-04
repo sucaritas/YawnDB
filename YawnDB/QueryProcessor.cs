@@ -36,7 +36,6 @@
             {
                 node = Expression.Call(storageQueriable, node.Method, node.Arguments.ToArray());
             }
-
             // If the "node.Object" is null the this is a static method call
             // therefore the first argument must be the ReferenceTo<T> object which needs to be replaced
             if (node.Object == null && node.Arguments.First().Type == typeof(ReferenceTo<T>))
@@ -57,7 +56,6 @@
                     node = Expression.Call(node.Object, node.Method, newArgumentList.ToArray());
                 }
             }
-
 
             return node;
         }
