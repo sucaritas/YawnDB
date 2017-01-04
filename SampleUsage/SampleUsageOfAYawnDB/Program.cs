@@ -3,8 +3,10 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Linq.Expressions;
     using System.Text;
     using System.Threading.Tasks;
+    using System.Reflection;
     using School;
     using Microsoft.Diagnostics.Tracing.Session;
     using YawnDB.EventSources;
@@ -44,7 +46,7 @@
                 }
                 insertCount = int.Parse(input);
 
-                Console.Write("How many thread should i branch of:");
+                Console.Write("How many threads should i branch of:");
                 input = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(input))
                 {
@@ -74,7 +76,8 @@
 
                 timer.Reset();
                 timer.Start();
-                var results = myDB.Students.Where(x => x.Id != 0).ToArray();
+                var student = myDB.Students.First();
+                var results = myDB.Students.First().Classes.ToArray();
                 timer.Stop();
                 Console.WriteLine("Enumerated ALL ("+ results .Length.ToString("0,0")+ ") in  " + timer.ElapsedMilliseconds+"ms");
                 Console.WriteLine("___________________________________________________________________");

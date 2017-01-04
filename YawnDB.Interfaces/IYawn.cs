@@ -15,6 +15,8 @@
 
         ConcurrentDictionary<Type, IReference> RegisteredTypes { get; }
 
+        ConcurrentDictionary<Type, IStorage> RegisteredStorageTypes { get; }
+
         bool RegisterSchema<T>(IReferenceTo<T> referenceInstance) where T: YawnSchema;
 
         bool UnRegisterSchema(Type schemaToUnregister);

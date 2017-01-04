@@ -10,9 +10,9 @@
     ║ ┌───────────────────┬──────────────────────┐ ─┐               ║  │
     ║ │ BlockProperties   │ 1 Byte (1bit flags)  │  │               ║  │
     ║ ├───────────────────┼──────────────────────┤  │               ║  │
-    ║ │ NextBlockLocation │ 8 Bytes (long int)   │  ╞══ 17 bytes    ║  │
+    ║ │ NextBlockLocation │ 8 Bytes (1 long int) │  ╞══ 17 bytes    ║  │
     ║ ├───────────────────┼──────────────────────┤  │   Header size ║  │
-    ║ │ RecordSize        │ 8 Bytes (long int)   │  │               ║  ╞══ Block Size
+    ║ │ RecordSize        │ 8 Bytes (1 long int) │  │               ║  ╞══ Block Size
     ║ └───────────────────┴──────────────────────┘ ─┘               ║  │
     ║ Bits in block                                                 ║  │
     ║ ┌──────────────────────────────────────────┐                  ║  │
@@ -39,9 +39,12 @@
     using YawnDB.PerformanceCounters;
     using YawnDB.Interfaces;
     using YawnDB.Utils;
+    using System.Reflection;
 
     public class BlockStorage<T> : IStorageOf<T> where T : YawnSchema
     {
+        private IYawn YawnSite;
+
         public IDictionary<string, IIndex> Indicies { get; private set; } = new Dictionary<string, IIndex>();
 
         public Type SchemaType { get; } = typeof(T);
@@ -82,8 +85,11 @@
 
         private BlockStorageLocker RecordLocker;
 
+        private List<PropertyInfo> ReferencingProperties = new List<PropertyInfo>();
+
         public BlockStorage(IYawn yawnSite, int blockSize = 512, int numberOfBufferBlocks = 10000)
         {
+            this.YawnSite = yawnSite;
             this.BlockSize = blockSize;
             this.NumberOfBufferBlocks = numberOfBufferBlocks;
 
@@ -164,6 +170,16 @@
             }
 
             ReIndexStorage(needReindexing);
+
+            var proterties = typeof(T).GetProperties(BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public);
+            foreach (var prop in proterties)
+            {
+                if (typeof(IReference).IsAssignableFrom(prop.PropertyType))
+                {
+                    ReferencingProperties.Add(prop);
+                }
+            }
+
             StorageEventSource.Log.IndexingFinish(this.FullStorageName);
             StorageEventSource.Log.InitializeFinish(this.FullStorageName);
             this.PerfCounters.InitializeCounter.Increment();
@@ -363,11 +379,11 @@
             }
         }
 
-        public async Task<IEnumerable<T>> GetRecords(IEnumerable<IStorageLocation> recordsToPull)
+        public async Task<IEnumerable<TE>> GetRecordsAsync<TE>(IEnumerable<IStorageLocation> recordsToPull) where TE : YawnSchema
         {
             if (recordsToPull == null)
             {
-                return Enumerable.Empty<T>();
+                return Enumerable.Empty<TE>();
             }
 
             List<Task<T>> pendingRecords = new List<Task<T>>();
@@ -383,7 +399,7 @@
 
             Task.WaitAll(pendingRecords.ToArray());
 
-            return pendingRecords.Where(x=>x.Result!=null).Select(x => x.Result);
+            return pendingRecords.Where(x=>x.Result!=null).Select(x => x.Result as TE);
         }
 
         public async Task<T> ReadRecord(IStorageLocation fromLocation)
@@ -440,7 +456,7 @@
             T instance = SchemaDeserializer.Deserialize<T>(reader);
             Cache.Set(location.ToString(), instance, new CacheItemPolicy());
             this.PerfCounters.RecordReadCounter.Increment();
-            return Cloner.Clone<T>(instance);
+            return PropagateSite(Cloner.Clone<T>(instance));
         }
 
         private int BytesOnBlock(long recordSize, bool isLastBlock)
@@ -458,9 +474,34 @@
             return blockSize;
         }
 
-        public async Task<IEnumerable<T>> GetAllRecords()
+        public async Task<IEnumerable<TE>> GetAllRecordsAsync<TE>() where TE : YawnSchema
         {
-            return await GetRecords(Indicies["YawnKeyIndex"].EnumerateAllLocations().ToArray());
+            return await GetRecordsAsync<TE>(Indicies["YawnKeyIndex"].EnumerateAllLocations());
+        }
+
+        public IEnumerable<TE> GetRecords<TE>(IEnumerable<IStorageLocation> recordsToPull) where TE : YawnSchema
+        {
+            if (recordsToPull == null)
+            {
+                yield break;
+            }
+
+            foreach (var location in recordsToPull)
+            {
+                if (location == null)
+                {
+                    continue;
+                }
+
+                yield return  this.ReadRecord(location).Result as TE;
+            }
+
+            yield break;
+        }
+
+        public IEnumerable<TE> GetAllRecords<TE>() where TE : YawnSchema
+        {
+            return GetRecords<TE>(Indicies["YawnKeyIndex"].EnumerateAllLocations().ToArray());
         }
 
         public async Task<T> CreateRecord()
@@ -472,7 +513,11 @@
 
         public long GetNextID()
         {
-            Interlocked.Increment(ref this.NextIndex);
+            lock (AutoIdLock)
+            {
+                Interlocked.Increment(ref this.NextIndex);
+            }
+
             return this.NextIndex;
         }
 
@@ -559,6 +604,16 @@
             }
 
             this.FreeBlocks.SaveToFile();
+        }
+
+        private T PropagateSite(T instance)
+        {
+            foreach(var prop in ReferencingProperties)
+            {
+                ((IReference)prop.GetValue(instance)).YawnSite = this.YawnSite;
+            }
+
+            return instance;
         }
     }
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously

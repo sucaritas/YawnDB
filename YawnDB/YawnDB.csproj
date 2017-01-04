@@ -68,6 +68,7 @@
     <Compile Include="EventSources\StorageEventSource.cs" />
     <Compile Include="PerformanceCounters\StorageCounters.cs" />
     <BondCodegen Include="Storage\BlockStorage\BlockStorageLocation.bond" />
+    <Compile Include="QueryProcessor.cs" />
     <Compile Include="Storage\BlockStorage\BlockStorageLocation.cs" />
     <Compile Include="Storage\BlockStorage\BlockStorageSyncLock.cs" />
     <Compile Include="Storage\BlockStorage\FreeBlocks.cs" />

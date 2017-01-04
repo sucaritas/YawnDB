@@ -41,7 +41,7 @@
             {
                 if (this.RegisteredStorageTypes.TryAdd(schemaType, storage))
                 {
-                    referenceInstance.SetYawnSite(this);
+                    referenceInstance.YawnSite = this;
                     return true;
                 }
                 else
@@ -64,7 +64,7 @@
             IReference schemaRef;
             if (RegisteredTypes.TryRemove(schemaToUnregister, out schemaRef))
             {
-                schemaRef.ResetYawnSite();
+                schemaRef.YawnSite = null;
                 return true;
             }
 

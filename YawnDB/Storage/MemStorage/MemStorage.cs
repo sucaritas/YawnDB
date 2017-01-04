@@ -9,6 +9,7 @@
     using System.IO;
     using System.IO.MemoryMappedFiles;
     using System.Threading;
+    using System.Reflection;
     using Bond;
     using Bond.Protocols;
     using Bond.IO.Unsafe;
@@ -20,6 +21,8 @@
 
     public class MemStorage<T> : IStorageOf<T> where T : YawnSchema
     {
+        private IYawn YawnSite;
+
         private IDictionary<long, T> ItemsInMemmory = new ConcurrentDictionary<long, T>();
 
         private Cloner<T> Cloner = new Cloner<T>(typeof(T));
@@ -34,10 +37,13 @@
 
         public Type SchemaType { get; } = typeof(T);
 
+        private object AutoIdLock = new object();
+
         private long NextIndex = 0;
 
         public MemStorage(IYawn yawnSite)
         {
+            this.YawnSite = yawnSite;
             this.TypeNameNormilized = this.SchemaType.Namespace + "." + this.SchemaType.Name;
             if (this.SchemaType.IsGenericType)
             {
@@ -50,6 +56,16 @@
             }
 
             this.FullStorageName = yawnSite.DatabaseName + "_" + this.TypeNameNormilized;
+
+            var proterties = typeof(T).GetProperties(BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public);
+            foreach (var prop in proterties)
+            {
+                if (typeof(IReference).IsAssignableFrom(prop.PropertyType))
+                {
+                    ReferencingProperties.Add(prop);
+                }
+            }
+
             this.PerfCounters = new StorageCounters(this.FullStorageName);
             this.PerfCounters.InitializeCounter.Increment();
         }
@@ -86,7 +102,29 @@
             return ItemsInMemmory.Remove(instance.Id);
         }
 
-        public async Task<IEnumerable<T>> GetRecords(IEnumerable<IStorageLocation> recordsToPull)
+        private List<PropertyInfo> ReferencingProperties = new List<PropertyInfo>();
+
+        public async Task<IEnumerable<TE>> GetRecordsAsync<TE>(IEnumerable<IStorageLocation> recordsToPull) where TE : YawnSchema
+        {
+            List<TE> records = new List<TE>();
+            foreach (var location in recordsToPull)
+            {
+                T record;
+                if (ItemsInMemmory.TryGetValue((location as MemStorageLocation).Id, out record))
+                {
+                    records.Add(PropagateSite(record as TE) as TE);
+                }
+            }
+
+            return records.ToArray();
+        }
+
+        public async Task<IEnumerable<TE>> GetAllRecordsAsync<TE>() where TE : YawnSchema
+        {
+            return this.ItemsInMemmory.Values.Select(x=> PropagateSite(x as TE) as TE);
+        }
+
+        public IEnumerable<TE> GetRecords<TE>(IEnumerable<IStorageLocation> recordsToPull) where TE : YawnSchema
         {
             List<T> records = new List<T>();
             foreach (var location in recordsToPull)
@@ -94,16 +132,16 @@
                 T record;
                 if (ItemsInMemmory.TryGetValue((location as MemStorageLocation).Id, out record))
                 {
-                    records.Add(record);
+                    yield return record as TE;
                 }
             }
 
-            return records.ToArray();
+            yield break;
         }
 
-        public async Task<IEnumerable<T>> GetAllRecords()
+        public IEnumerable<TE> GetAllRecords<TE>() where TE : YawnSchema
         {
-            return this.ItemsInMemmory.Values;
+            return this.ItemsInMemmory.Values.Select(x=> PropagateSite(x as TE) as TE);
         }
 
         public async Task<T> CreateRecord()
@@ -115,7 +153,11 @@
 
         public long GetNextID()
         {
-            Interlocked.Increment(ref this.NextIndex);
+            lock (AutoIdLock)
+            {
+                Interlocked.Increment(ref this.NextIndex);
+            }
+
             return this.NextIndex;
         }
 
@@ -139,6 +181,16 @@
         public void Close()
         {
 
+        }
+
+        private YawnSchema PropagateSite(YawnSchema instance)
+        {
+            foreach (var prop in ReferencingProperties)
+            {
+                ((IReference)prop.GetValue(instance)).YawnSite = this.YawnSite;
+            }
+
+            return instance;
         }
     }
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously

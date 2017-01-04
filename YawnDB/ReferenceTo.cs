@@ -5,6 +5,7 @@
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+    using System.Reflection;
 
     using YawnDB.Interfaces;
     using YawnDB.Exceptions;
@@ -12,99 +13,70 @@
 
     public class ReferenceTo<T> : IReferenceTo<T> where T : YawnSchema
     {
-        private IYawn YawnSite;
+        public IYawn YawnSite { get; set; }
+        #region IQueryable
+        public Type ElementType { get; }
+        public Expression Expression { get; }
+        public IQueryProvider Provider { get; }
+        #endregion
 
-
-        public void SetYawnSite(IYawn site)
+        public ReferenceTo()
         {
-            this.YawnSite = site;
+            this.Provider = this;
+            this.Expression = Expression.Constant(this);
         }
 
-        public void ResetYawnSite()
-        {
-            this.YawnSite = null;
-        }
-
-        #region ICollection Interface
-        public int Count
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        #region ICollection interface methods
-        public bool IsReadOnly
-        {
-            get
-            {
-                return false;
-            }
-        }
-
+        #region IEnumerable interface
         public IEnumerator<T> GetEnumerator()
         {
-            if (this.YawnSite == null)
+            var exp = this.Expression as ConstantExpression;
+            if (exp != null && exp.Value == this)
             {
-                return Enumerable.Empty<T>().GetEnumerator();
+                return this.YawnSite.RegisteredStorageTypes[typeof(T)].GetAllRecords<T>().GetEnumerator();
             }
-
-            IStorage storage;
-            this.YawnSite.TryGetStorage(typeof(T), out storage);
-            IStorageOf<T> typedStorage = storage as IStorageOf<T>;
-
-            if (typedStorage == null)
-            {
-                return Enumerable.Empty<T>().GetEnumerator();
-            }
-
-            return typedStorage.GetAllRecords().Result.GetEnumerator();
+            
+            return Enumerable.Empty<T>().GetEnumerator();
         }
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
         {
-            if (this.YawnSite == null)
-            {
-                return Enumerable.Empty<T>().GetEnumerator();
-            }
-
-            IStorage storage;
-            this.YawnSite.TryGetStorage(typeof(T), out storage);
-            IStorageOf<T> typedStorage = storage as IStorageOf<T>;
-
-            if (typedStorage == null)
-            {
-                return Enumerable.Empty<T>().GetEnumerator();
-            }
-
-            return typedStorage.GetAllRecords().Result.GetEnumerator();
+            IEnumerator<T> enumerator = GetEnumerator();
+            return enumerator;
         }
         #endregion
-        
-        public void Add(T item)
+
+        #region IQueryProvider
+        public IQueryable CreateQuery(Expression expression)
         {
-            throw new NotImplementedException();
+            return this.CreateQuery<T>(expression);
         }
 
-        public void Clear()
+        public IQueryable<TE> CreateQuery<TE>(Expression expression)
         {
-            throw new NotImplementedException();
-        }
+            var tp = typeof(TE);
+            var nodeType = expression.NodeType;
 
-        public bool Contains(T item)
-        {
-            throw new NotImplementedException();
-        }
+            switch(nodeType)
+            {
+                case ExpressionType.Call:
 
-        public void CopyTo(T[] array, int arrayIndex)
-        {
-            throw new NotImplementedException();
-        }
+                    break;
+                default:
+                    throw new NotImplementedException(nodeType + "is not supported");
+            }
 
-        public bool Remove(T item)
+            return (IOrderedQueryable<TE>)this;
+        }
+        public object Execute(Expression expression)
         {
-            throw new NotImplementedException();
+            return Execute<T>(expression);
+        }
+        public TResult Execute<TResult>(Expression expression)
+        {
+            LambdaExpression lambda = Expression.Lambda(new QueryProcessor<T>().ParseQuery(expression, this));
+            var generatedDelegate = lambda.Compile();
+
+            return (TResult)generatedDelegate.DynamicInvoke(null);
         }
         #endregion
     }

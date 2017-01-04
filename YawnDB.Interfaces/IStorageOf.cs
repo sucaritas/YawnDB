@@ -15,10 +15,6 @@
 
         bool DeleteRecord(T instance);
 
-        Task<IEnumerable<T>> GetRecords(IEnumerable<IStorageLocation> recordsToPull);
-
-        Task<IEnumerable<T>> GetAllRecords();
-
         Task<T> CreateRecord();
 
         long GetNextID();
