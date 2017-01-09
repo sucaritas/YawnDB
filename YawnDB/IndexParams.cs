@@ -5,8 +5,8 @@
 
     public class IndexParameters : IIdexArguments
     {
-        public IList<string> IndexParams { get; }
-        public IDictionary<string, object> IndexStartValue { get; }
-        public IDictionary<string, object> IndexEndValue { get; }
+        public IList<string> IndexParams { get; set; }
+        public IDictionary<string, object> Value1 { get; set; }
+        public IDictionary<string, object> Value2 { get; set; }
     }
 }

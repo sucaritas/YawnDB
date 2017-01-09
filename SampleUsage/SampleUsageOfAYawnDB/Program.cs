@@ -76,7 +76,13 @@
 
                 timer.Reset();
                 timer.Start();
-                var res = myDB.Students.Select(x => x.FirstName);
+                var myClass = myDB.CreateRecord<Classes>();
+                myClass.Students.RefrencedIds.AddLast(1);
+                myClass.Students.RefrencedIds.AddLast(2);
+                myClass.Students.RefrencedIds.AddLast(3);
+
+                //var res = myDB.Students.Select(x => x.FirstName);
+                var res = myClass.Students.Select(x => x.FirstName);
                 var results = res.ToArray();
                 timer.Stop();
                 Console.WriteLine("Enumerated ALL ("+ results.Length.ToString("0,0")+ ") in  " + timer.ElapsedMilliseconds+"ms");

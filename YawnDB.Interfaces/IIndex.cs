@@ -16,7 +16,7 @@
 
         IList<IndexParameter> IndexParameters { get; }
 
-        IEnumerable<IStorageLocation> GetStorageLocations(IEnumerable<IIdexArguments> inputArguments);
+        IEnumerable<IStorageLocation> GetStorageLocations(IIdexArguments inputArguments);
 
         IStorageLocation GetLocationForInstance(YawnSchema instance);
 

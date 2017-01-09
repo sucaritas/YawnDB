@@ -148,7 +148,7 @@
         {
             var record = Activator.CreateInstance(typeof(T)) as T;
             record.Id = this.GetNextID();
-            return record as T;
+            return PropagateSite(record as T) as T;
         }
 
         public long GetNextID()
@@ -191,6 +191,17 @@
             }
 
             return instance;
+        }
+
+        public IEnumerable<IStorageLocation> GetStorageLocations(IIdexArguments queryParams)
+        {
+            List<IStorageLocation> locations = new List<IStorageLocation>();
+            foreach (var index in this.Indicies)
+            {
+                locations.AddRange(index.Value.GetStorageLocations(queryParams));
+            }
+
+            return locations;
         }
     }
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously

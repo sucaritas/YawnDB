@@ -1,6 +1,7 @@
 ﻿namespace YawnDB.Index.HashKey
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.Collections.Concurrent;
     using System.Linq;
@@ -62,21 +63,18 @@
             return false;
         }
 
-        public IEnumerable<IStorageLocation> GetStorageLocations(IEnumerable<IIdexArguments> inputParams)
+        public IEnumerable<IStorageLocation> GetStorageLocations(IIdexArguments inputParams)
         {
-            foreach (var param in inputParams)
+            IStorageLocation result;
+            foreach (var key in this.GetKeyFromIndexArguments(inputParams))
             {
-                IStorageLocation result;
-                foreach (var key in this.GetKeyFromIndexArguments(inputParams))
+                if (IndexData.TryGetValue(key, out result))
                 {
-                    if (IndexData.TryGetValue(key, out result))
-                    {
-                        yield return result;
-                    }
-                    else
-                    {
-                        continue;
-                    }
+                    yield return result;
+                }
+                else
+                {
+                    continue;
                 }
             }
 
@@ -107,27 +105,58 @@
             return value;
         }
 
-        private IEnumerable<string> GetKeyFromIndexArguments(IEnumerable<IIdexArguments> arguments)
+        private IEnumerable<string> GetKeyFromIndexArguments(IIdexArguments arguments)
         {
-            List<string> keys = new List<string>();
-
-            foreach (var argument in arguments)
+            var count = this.IndexParameters.Select(x => x.Name).Except(arguments.IndexParams);
+            if (count.Any())
             {
-                keys.Add(Getkey(argument));
+                return Enumerable.Empty<string>();
+            }
+
+            List<string> keys = new List<string>(Enumerable.Range(0, this.GetMaxKeyCount(arguments)).Select(x=>string.Empty));
+
+            foreach (var indexParam in this.IndexParameters)
+            {
+                var val1 = arguments.Value1[indexParam.Name] as IEnumerable;
+                if (val1 != null)
+                {
+                    int i = 0;
+                    foreach (var p in val1)
+                    {
+                        keys[i] = keys[i] + p.ToString();
+                        i++;
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < keys.Count; i++)
+                    {
+                        keys[i] = keys[i] + arguments.Value1[indexParam.Name].ToString();
+                    }
+                }
             }
 
             return keys;
         }
 
-        public string Getkey(IIdexArguments argument)
+        private int GetMaxKeyCount(IIdexArguments arguments)
         {
-            var key = string.Empty;
-            foreach (var paramGetter in this.IndexParameters)
+            int max = 1;
+            foreach(var arg in arguments.Value1)
             {
-                key += argument.IndexStartValue[paramGetter.Name].ToString();
-            }
+                int cnt = 0;
+                var ien = (arg.Value as IEnumerable);
+                foreach (var p in ien)
+                {
+                    cnt++;
+                }
 
-            return key;
+                if (cnt > max)
+                {
+                    max = cnt;
+                }
+            }
+            return max;
         }
 
         public IEnumerable<IStorageLocation> EnumerateAllLocations()

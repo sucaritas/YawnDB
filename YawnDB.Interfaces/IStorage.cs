@@ -12,6 +12,7 @@ namespace YawnDB.Interfaces
         IEnumerable<TE> GetAllRecords<TE>() where TE : YawnSchema;
         Task<IEnumerable<TE>> GetAllRecordsAsync<TE>() where TE : YawnSchema;
         Task<IEnumerable<TE>> GetRecordsAsync<TE>(IEnumerable<IStorageLocation> recordsToPull) where TE : YawnSchema;
+        IEnumerable<IStorageLocation> GetStorageLocations(IIdexArguments queryParams);
         void Close();
     }
 }
