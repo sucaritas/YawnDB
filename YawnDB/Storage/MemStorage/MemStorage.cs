@@ -18,10 +18,13 @@
     using YawnDB.PerformanceCounters;
     using YawnDB.Interfaces;
     using YawnDB.Utils;
+    using YawnDB.Exceptions;
 
     public class MemStorage<T> : IStorageOf<T> where T : YawnSchema
     {
         private IYawn YawnSite;
+
+        public StorageState State { get; private set; } = StorageState.Closed;
 
         private IDictionary<long, T> ItemsInMemmory = new ConcurrentDictionary<long, T>();
 
@@ -72,6 +75,11 @@
 
         public async Task<IStorageLocation> SaveRecord(T instanceToSave)
         {
+            if (this.State == StorageState.Closed)
+            {
+                throw new DatabaseIsClosedException($"An attemp was made to write to database '{this.YawnSite.DatabaseName}' which is closed");
+            }
+
             var instance = Cloner.Clone<T>(instanceToSave);
             if (instance == null)
             {
@@ -93,6 +101,11 @@
 
         public bool DeleteRecord(T instance)
         {
+            if (this.State == StorageState.Closed)
+            {
+                throw new DatabaseIsClosedException($"An attemp was made to read from database '{this.YawnSite.DatabaseName}' which is closed");
+            }
+
             foreach (var index in this.Indicies.Values)
             {
                 index.DeleteIndex(instance);
@@ -179,6 +192,11 @@
         }
 
         public void Close()
+        {
+
+        }
+
+        public void Open()
         {
 
         }

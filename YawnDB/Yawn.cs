@@ -25,16 +25,16 @@
 
         public bool RegisterSchema<T>() where T : YawnSchema
         {
-            return this.RegisterSchema<T>(new ReferenceTo<T>());
+            return this.RegisterSchema<T>(new BlockStorage<T>(this), new ReferenceTo<T>());
         }
 
-        public bool RegisterSchema<T>(IReferenceTo<T> referenceInstance) where T : YawnSchema
+        public bool RegisterSchema<T>(IStorageOf<T> storage) where T : YawnSchema
         {
-            IStorageOf<T> storage = new BlockStorage<T>(this);
-            return this.RegisterSchema(referenceInstance, storage);
+            IReferenceTo<T> referenceInstance = new ReferenceTo<T>();
+            return this.RegisterSchema(storage, referenceInstance);
         }
 
-        public bool RegisterSchema<T>(IReferenceTo<T> referenceInstance, IStorageOf<T> storage) where T : YawnSchema
+        public bool RegisterSchema<T>(IStorageOf<T> storage, IReferenceTo<T> referenceInstance) where T : YawnSchema
         {
             var schemaType = typeof(T);
             if (RegisteredTypes.TryAdd(schemaType, referenceInstance))
@@ -95,13 +95,31 @@
             return (storage as IStorageOf<T>).SaveRecord(instance);
         }
 
+        public bool DeleteRecord<T>(T instance) where T : YawnSchema
+        {
+            IStorage storage;
+            RegisteredStorageTypes.TryGetValue(typeof(T), out storage);
+            return (storage as IStorageOf<T>).DeleteRecord(instance);
+        }
+
         public void Close()
         {
-            foreach(var storage in RegisteredStorageTypes.Values)
+            foreach (var storage in RegisteredStorageTypes.Values)
             {
                 if (storage != null)
                 {
                     storage.Close();
+                }
+            }
+        }
+
+        public void Open()
+        {
+            foreach (var storage in RegisteredStorageTypes.Values)
+            {
+                if (storage != null)
+                {
+                    storage.Open();
                 }
             }
         }

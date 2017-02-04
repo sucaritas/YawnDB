@@ -24,6 +24,8 @@
 
         bool SetIndex(YawnSchema instance, IStorageLocation storageLocation);
 
+        bool UpdateIndex(YawnSchema oldRecord, YawnSchema newRecord, IStorageLocation storageLocation);
+
         bool DeleteIndex(YawnSchema instance);
 
         bool SaveDataToPath(string path);

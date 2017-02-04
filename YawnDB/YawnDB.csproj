@@ -66,6 +66,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="EventSources\StorageEventSource.cs" />
+    <Compile Include="Exceptions\DatabaseIsClosedException.cs" />
     <Compile Include="PerformanceCounters\StorageCounters.cs" />
     <BondCodegen Include="Storage\BlockStorage\BlockStorageLocation.bond" />
     <Compile Include="QueryProcessor.cs" />

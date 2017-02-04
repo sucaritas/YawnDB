@@ -17,7 +17,7 @@
 
         ConcurrentDictionary<Type, IStorage> RegisteredStorageTypes { get; }
 
-        bool RegisterSchema<T>(IReferenceTo<T> referenceInstance) where T: YawnSchema;
+        bool RegisterSchema<T>(IStorageOf<T> storage) where T : YawnSchema;
 
         bool UnRegisterSchema(Type schemaToUnregister);
 
@@ -26,5 +26,7 @@
         bool TryGetStorage(Type schemaType, out IStorage storage);
 
         void Close();
+
+        void Open();
     }
 }

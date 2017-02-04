@@ -256,5 +256,19 @@
 
             return true;
         }
+
+        public bool UpdateIndex(YawnSchema oldRecord, YawnSchema newRecord, IStorageLocation storageLocation)
+        {
+            try
+            {
+                DeleteIndex(oldRecord);
+                SetIndex(newRecord, storageLocation);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }
