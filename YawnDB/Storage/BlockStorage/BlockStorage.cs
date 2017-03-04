@@ -42,7 +42,7 @@
     using YawnDB.Exceptions;
     using System.Reflection;
 
-    public class BlockStorage<T> : IStorageOf<T> where T : YawnSchema
+    public class BlockStorage<T> : IStorage where T : YawnSchema
     {
         private IYawn YawnSite;
 
@@ -80,13 +80,15 @@
 
         private object ResizeLock = new object();
 
+        private int Resizers = 0;
+
         private object AutoIdLock = new object();
 
         private long NextIndex = 0;
 
         private StorageCounters PerfCounters;
 
-        private BlockStorageLocker RecordLocker;
+        private StorageLocker RecordLocker;
 
         private List<PropertyInfo> ReferencingProperties = new List<PropertyInfo>();
 
@@ -121,7 +123,7 @@
         public void Open()
         {
             this.PerfCounters = new StorageCounters(this.FullStorageName);
-            this.RecordLocker = new BlockStorageLocker(this.PerfCounters.WriteContentionCounter);
+            this.RecordLocker = new StorageLocker(this.PerfCounters.WriteContentionCounter);
             StorageEventSource.Log.InitializeStart("BlockStorage: " + this.FullStorageName);
 
             bool fileExist = File.Exists(this.FilePath);
@@ -175,6 +177,7 @@
                 }
             }
 
+            this.State = StorageState.Open;
             ReIndexStorage(needReindexing);
 
             var proterties = typeof(T).GetProperties(BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public);
@@ -189,17 +192,32 @@
             StorageEventSource.Log.IndexingFinish(this.FullStorageName);
             StorageEventSource.Log.InitializeFinish(this.FullStorageName);
             this.PerfCounters.InitializeCounter.Increment();
-            this.State = StorageState.Open;
         }
 
-        public async Task<IStorageLocation> SaveRecord(T inputInstance)
+        public Task<IStorageLocation> InsertRecord(YawnSchema instanceToInsert)
         {
-            if(this.State == StorageState.Closed)
+            return this.SaveRecord(instanceToInsert);
+        }
+
+        public Task<IStorageLocation> InsertRecord(YawnSchema instanceToInsert, ITransaction transaction)
+        {
+            return this.SaveRecord(instanceToInsert, transaction);
+        }
+
+        public async Task<IStorageLocation> SaveRecord(YawnSchema inputInstance, ITransaction transaction)
+        {
+            if (this.State == StorageState.Closed)
             {
                 throw new DatabaseIsClosedException($"An attemp was made to write to database '{this.YawnSite.DatabaseName}' which is closed");
             }
 
-            var instance = this.Cloner.Clone<T>(inputInstance);
+            if (!this.YawnSite.TransactionsEnabled && transaction != null)
+            {
+                throw new DatabaseTransactionsAreDisabled();
+            }
+
+            var isTransaction = transaction != null;
+            var instance = this.Cloner.Clone<T>(inputInstance as T);
             var output = new OutputBuffer();
             var writer = new CompactBinaryWriter<OutputBuffer>(output);
             this.SchemaSerializer.Serialize(instance, writer);
@@ -207,30 +225,16 @@
             int realBlockSize = this.BlockSize - BlockHelpers.GetHeaderSize();
             var numberOfBlocksNeeded = RecordSize / realBlockSize;
             numberOfBlocksNeeded += (RecordSize % realBlockSize) == 0 ? 0 : 1;
-            long[] addresses;
-
-            var keyIndex = Indicies["YawnKeyIndex"];
-            var existingLocation = keyIndex.GetLocationForInstance(instance) as BlockStorageLocation;
-
-            List<long> existingAddress = new List<long>();
-            if (existingLocation != null)
-            {
-                existingAddress = GetRecordBlockAddresses(existingLocation);
-                if (existingAddress.Count < numberOfBlocksNeeded)
-                {
-                    existingAddress.AddRange(GetFreeBlocks(numberOfBlocksNeeded - existingAddress.Count));
-                }
-            }
-
-            addresses = GetFreeBlocks(numberOfBlocksNeeded);
+            long[] addresses = GetFreeBlocks(numberOfBlocksNeeded);
 
             bool processingFirst = true;
             List<Block> blocksToWrite = new List<Block>();
             BlockStorageLocation location = new BlockStorageLocation();
+            byte blockProperties = BlockProperties.InUse;
+            blockProperties |= isTransaction ? (byte)0 : BlockProperties.IsCommited;
 
             for (int i = 0; i < addresses.Length; i++)
             {
-                byte blockProperties = BlockProperties.InUse;
                 if (processingFirst)
                 {
                     blockProperties |= BlockProperties.IsFirstBlockInRecord;
@@ -264,47 +268,180 @@
                 });
             }
 
-            BlockStorageSyncLock writeLock;
-            lock (this.ResizeLock)
+            using (var unlocker = new StorageUnlocker(this.RecordLocker.LockRecord(addresses[0], this.ResizeLock), this.RecordLocker))
             {
-                writeLock = this.RecordLocker.LockRecord(blocksToWrite[0].Address);
-            }
-
-            T existingInstance = null;
-            lock (writeLock)
-            {
-                existingInstance = ReadRecord(existingLocation).Result;
-                this.RecordLocker.WaitForRecord(blocksToWrite[0].Address, 1);
-                List<Task<bool>> tasks = new List<Task<bool>>();
+                // Write the prepared blocks
                 foreach (var blk in blocksToWrite)
                 {
                     this.WriteBlock(blk);
                 }
             }
 
-            this.RecordLocker.UnLockRecord(blocksToWrite[0].Address);
+            var keyIndex = this.Indicies["YawnKeyIndex"];
+            var existingLocation = keyIndex.GetLocationForInstance(instance) as BlockStorageLocation;
+            T existingInstance = ReadRecord(existingLocation).Result;
+            List<long> existingAddresses = GetRecordBlockAddresses(existingLocation);
 
-            if (existingLocation != null)
+            if (isTransaction)
             {
-                Cache.Remove(existingLocation.Address.ToString());
+                var transactionItem = new BlockTransactionItem();
+                transactionItem.ItemAction = Transactions.TransactionAction.Update;
+                transactionItem.SchemaType = SchemaType.AssemblyQualifiedName;
+                transactionItem.OriginalAddresses = new LinkedList<long>(existingAddresses);
+                transactionItem.OldInstance = existingInstance;
+                transactionItem.NewInstance = instance;
+                transactionItem.BlockAddresses = new LinkedList<long>(addresses);
+                transactionItem.Storage = this;
+                transaction.AddTransactionItem(transactionItem);
+
+                var transactionLocation = this.YawnSite.SaveRecord(transaction as YawnSchema).Result;
+                if (transactionLocation == null)
+                {
+                    return null;
+                }
+
+                //this.PerfCounters.RecordWriteCounter.Increment();
+                return location as StorageLocation;
+            }
+            else
+            {
+                Cache.Set(blocksToWrite[0].Address.ToString(), instance, new CacheItemPolicy());
+                UpdateIndeciesForInstance(existingInstance, instance, location as StorageLocation);
+
+                // Get existing adress for deletion
+                if (existingLocation != null)
+                {
+                    Cache.Remove(existingLocation.Address.ToString());
+                    StorageSyncLockCounter writeLock;
+                    lock (writeLock = this.RecordLocker.LockRecord(existingLocation.Address, this.ResizeLock))
+                    {
+                        using (var unlocker = new StorageUnlocker(writeLock, this.RecordLocker))
+                        {
+                            existingAddresses.Select(x => FreeBlock(x));
+                        }
+                    }
+                }
+
+                this.PerfCounters.RecordWriteCounter.Increment();
+                return location as StorageLocation;
+            }
+        }
+
+        public Task<IStorageLocation> SaveRecord(YawnSchema inputInstance)
+        {
+            return this.SaveRecord(inputInstance, null);
+        }
+
+        public bool CommitSave(ITransactionItem transactionItem)
+        {
+            // Commit the blocks
+            var item = transactionItem as BlockTransactionItem;
+            using (var unlocker = new StorageUnlocker(this.RecordLocker.LockRecord(item.BlockAddresses.First(), this.ResizeLock), this.RecordLocker))
+            {
+                foreach (var address in item.BlockAddresses)
+                {
+                    using (var viewWriter = this.MappedFile.CreateViewAccessor(address, this.BlockSize))
+                    {
+                        BlockHeader header;
+                        viewWriter.Read<BlockHeader>(0, out header);
+                        var headerSize = BlockHelpers.GetHeaderSize();
+                        header.BlockProperties |= BlockProperties.IsCommited;
+                        viewWriter.Write<BlockHeader>(0, ref header);
+                        viewWriter.Flush();
+                        viewWriter.Dispose();
+                    }
+                }
             }
 
-            Cache.Set(blocksToWrite[0].Address.ToString(), instance, new CacheItemPolicy());
-            UpdateIndeciesForInstance(existingInstance, instance, location as StorageLocation);
-            existingAddress.Select(x => FreeBlock(x));
+            var location = new BlockStorageLocation() { Address = item.BlockAddresses.First() };
+            Cache.Set(item.BlockAddresses.First().ToString(), item.NewInstance, new CacheItemPolicy());
+            UpdateIndeciesForInstance(item.OldInstance, item.NewInstance, location as StorageLocation);
+
+            // Get existing adress for deletion
+            if (item.OldInstance != null)
+            {
+                bool commitOk;
+                var keyIndex = this.Indicies["YawnKeyIndex"];
+                var existingLocation = keyIndex.GetLocationForInstance(item.OldInstance) as BlockStorageLocation;
+                Cache.Remove(existingLocation.Address.ToString());
+                this.RecordLocker.WaitForRecord(existingLocation.Address, 1);
+                StorageSyncLockCounter lck;
+                lock (lck = this.RecordLocker.LockRecord(existingLocation.Address, this.ResizeLock))
+                {
+                    using (var unlocker = new StorageUnlocker(lck, this.RecordLocker))
+                    {
+                        List<long> existingAddress = GetRecordBlockAddresses(existingLocation);
+                        commitOk = existingAddress.Select(x => FreeBlock(x)).Any(x => x == false);
+                    }
+                }
+
+                if (!commitOk)
+                {
+                    return false;
+                }
+            }
+
             this.PerfCounters.RecordWriteCounter.Increment();
-            return location as StorageLocation;
+            return true;
+        }
+
+        public bool RollbackSave(ITransactionItem transactionItem)
+        {
+            // Rollback the new blocks
+            var item = transactionItem as BlockTransactionItem;
+            bool rolledBackOk;
+
+            StorageSyncLockCounter lck;
+            lock (lck = this.RecordLocker.LockRecord(item.BlockAddresses.First(), this.ResizeLock))
+            {
+                using (var unlocker = new StorageUnlocker(lck, this.RecordLocker))
+                {
+                    rolledBackOk = item.BlockAddresses.Select(x => FreeBlock(x)).Any(x => x == false);
+                }
+            }
+
+            using (var unlocker = new StorageUnlocker(this.RecordLocker.LockRecord(item.OriginalAddresses.First(), this.ResizeLock), this.RecordLocker))
+            {
+                foreach (var blockLocation in item.OriginalAddresses)
+                {
+                    using (var viewWriter = this.MappedFile.CreateViewAccessor(blockLocation, this.BlockSize))
+                    {
+                        BlockHeader header;
+                        viewWriter.Read<BlockHeader>(0, out header);
+                        var headerSize = BlockHelpers.GetHeaderSize();
+                        // commit the block
+                        header.BlockProperties = (byte)(header.BlockProperties & BlockProperties.IsCommited);
+                        // Un-Free the block
+                        header.BlockProperties = (byte)(header.BlockProperties & BlockProperties.InUse);
+                        viewWriter.Write<BlockHeader>(0, ref header);
+                        viewWriter.Flush();
+                        viewWriter.Dispose();
+                    }
+                }
+            }
+
+            Cache.Set(item.OriginalAddresses.First().ToString(), item.OldInstance, new CacheItemPolicy());
+            this.UpdateIndeciesForInstance(item.NewInstance, item.OldInstance, new BlockStorageLocation() { Address = item.OriginalAddresses.First() });
+            return true;
         }
 
         private bool FreeBlock(long blockLocation)
         {
-            using (var viewWriter = this.MappedFile.CreateViewAccessor(blockLocation, this.BlockSize, MemoryMappedFileAccess.ReadWrite))
+            using (var unlocker = new StorageUnlocker(this.RecordLocker.LockRecord(blockLocation, this.ResizeLock), this.RecordLocker))
             {
-                var header = new BlockHeader() { BlockProperties = 0, NextBlockLocation = 0, RecordSize = 0 };
-                var headerSize = BlockHelpers.GetHeaderSize();
-                viewWriter.Write<BlockHeader>(0, ref header);
-                viewWriter.Flush();
-                viewWriter.Dispose();
+                using (var viewWriter = this.MappedFile.CreateViewAccessor(blockLocation, this.BlockSize))
+                {
+                    BlockHeader header;
+                    viewWriter.Read<BlockHeader>(0, out header);
+                    var headerSize = BlockHelpers.GetHeaderSize();
+                    // Un-commit the block
+                    header.BlockProperties = (byte)(header.BlockProperties & ~BlockProperties.IsCommited);
+                    // Free the block
+                    header.BlockProperties = (byte)(header.BlockProperties & ~BlockProperties.InUse);
+                    viewWriter.Write<BlockHeader>(0, ref header);
+                    viewWriter.Flush();
+                    viewWriter.Dispose();
+                }
             }
 
             return true;
@@ -312,23 +449,30 @@
 
         private List<long> GetRecordBlockAddresses(BlockStorageLocation blockLocation)
         {
+            if(blockLocation == null)
+            {
+                return new List<long>();
+            }
+
             long location = blockLocation.Address;
             bool lastBlock = false;
             List<long> addresses = new List<long>() { location };
-
-            while (!lastBlock)
+            using (var unlocker = new StorageUnlocker(this.RecordLocker.LockRecord(blockLocation.Address, this.ResizeLock), this.RecordLocker))
             {
-                using (var readerView = this.MappedFile.CreateViewAccessor(location, this.BlockSize))
+                while (!lastBlock)
                 {
-                    BlockHeader header;
-                    readerView.Read<BlockHeader>(0, out header);
-                    lastBlock = (header.BlockProperties & BlockProperties.IsLastBlockInRecord) != 0;
-                    if (!lastBlock)
+                    using (var readerView = this.MappedFile.CreateViewAccessor(location, this.BlockSize))
                     {
-                        addresses.Add(header.NextBlockLocation);
-                    }
+                        BlockHeader header;
+                        readerView.Read<BlockHeader>(0, out header);
+                        lastBlock = (header.BlockProperties & BlockProperties.IsLastBlockInRecord) != 0;
+                        if (!lastBlock)
+                        {
+                            addresses.Add(header.NextBlockLocation);
+                        }
 
-                    readerView.Dispose();
+                        readerView.Dispose();
+                    }
                 }
             }
 
@@ -353,24 +497,16 @@
         {
             long address;
             List<long> addresses = new List<long>();
+            this.WaitForResizer();
+
             for (int i = 0; i < numberOfBlocks; i++)
             {
-                if (FreeBlocks.PopFreeBlock(out address))
-                {
-                    addresses.Add(address);
-                }
-                else
+                while (!FreeBlocks.PopFreeBlock(out address))
                 {
                     ResizeFile(this.NumberOfBufferBlocks);
-                    if (FreeBlocks.PopFreeBlock(out address))
-                    {
-                        addresses.Add(address);
-                    }
-                    else
-                    {
-                        throw new AccessViolationException("No free blocks after resize!!");
-                    }
                 }
+
+                addresses.Add(address);
             }
 
             return addresses.ToArray();
@@ -383,20 +519,23 @@
             lock (this.ResizeLock)
             {
                 this.RecordLocker.WaitForAllReaders();
-                var firstAddressInNewArea = this.Capacity;
-                this.Capacity += this.NumberOfBufferBlocks * this.BlockSize;
+                using (var unlocker = new BlockStorageUnlocker<T>(this))
+                {
+                    var firstAddressInNewArea = this.Capacity;
+                    this.Capacity += this.NumberOfBufferBlocks * this.BlockSize;
 
-                // Close the mapped file an reopen with add capacity
-                this.MappedFile.Dispose();
-                this.MappedFile = MemoryMappedFile.CreateFromFile(this.FilePath, FileMode.OpenOrCreate, this.TypeNameNormilized, this.Capacity, MemoryMappedFileAccess.ReadWrite);
+                    // Close the mapped file an reopen with add capacity
+                    this.MappedFile.Dispose();
+                    this.MappedFile = MemoryMappedFile.CreateFromFile(this.FilePath, FileMode.OpenOrCreate, this.TypeNameNormilized, this.Capacity, MemoryMappedFileAccess.ReadWrite);
 
-                FreeBlocks.AddFreeBlockRange(firstAddressInNewArea, this.NumberOfBufferBlocks, this.BlockSize);
+                    FreeBlocks.AddFreeBlockRange(firstAddressInNewArea, this.NumberOfBufferBlocks, this.BlockSize);
 
-                this.PerfCounters.ResizeCounter.Increment();
+                    this.PerfCounters.ResizeCounter.Increment();
+                }
             }
         }
 
-        private void UpdateIndeciesForInstance(T oldRecord, T newRecord, StorageLocation newLocation)
+        private void UpdateIndeciesForInstance(YawnSchema oldRecord, YawnSchema newRecord, StorageLocation newLocation)
         {
             this.PerfCounters.IndexingCounter.Increment();
             foreach (var index in this.Indicies)
@@ -405,7 +544,7 @@
             }
         }
 
-        private void DeleteIndeciesForInstance(T instance)
+        private void DeleteIndeciesForInstance(YawnSchema instance)
         {
             this.PerfCounters.IndexingCounter.Increment();
             foreach (var index in this.Indicies)
@@ -455,41 +594,34 @@
             var cacheInstance = Cache.Get(location.ToString());
             if (cacheInstance != null)
             {
+                this.PerfCounters.RecordReadFromCacheCounter.Increment();
                 return Cloner.Clone<T>(cacheInstance as T);
-            }
-
-            lock (this.ResizeLock)
-            {
-                this.RecordLocker.LockRecord(FirstLocation);
             }
 
             bool lastBlock = false;
             byte[] buffer = null;
-            int i = 0;
             int bytesReadSofar = 0;
-
-            while (!lastBlock)
+            using (var unlocker = new StorageUnlocker(this.RecordLocker.LockRecord(FirstLocation, this.ResizeLock), this.RecordLocker))
             {
-                using (var readerView = this.MappedFile.CreateViewAccessor(location, this.BlockSize))
+                for (int i = 0; !lastBlock; i++)
                 {
-                    BlockHeader header;
-                    readerView.Read<BlockHeader>(0, out header);
-                    lastBlock = (header.BlockProperties & BlockProperties.IsLastBlockInRecord) != 0;
-                    location = header.NextBlockLocation;
-                    if (i == 0)
+                    using (var readerView = this.MappedFile.CreateViewAccessor(location, this.BlockSize))
                     {
-                        buffer = new byte[header.RecordSize];
+                        BlockHeader header;
+                        readerView.Read<BlockHeader>(0, out header);
+                        lastBlock = (header.BlockProperties & BlockProperties.IsLastBlockInRecord) != 0;
+                        location = header.NextBlockLocation;
+                        if (i == 0)
+                        {
+                            buffer = new byte[header.RecordSize];
+                        }
+
+                        var bytesInBlock = BytesOnBlock(header.RecordSize, lastBlock);
+                        readerView.ReadArray(BlockHelpers.GetHeaderSize(), buffer, bytesReadSofar, bytesInBlock);
+                        bytesReadSofar += bytesInBlock;
                     }
-
-                    var bytesInBlock = BytesOnBlock(header.RecordSize, lastBlock);
-                    readerView.ReadArray(BlockHelpers.GetHeaderSize(), buffer, bytesReadSofar, bytesInBlock);
-                    bytesReadSofar += bytesInBlock;
                 }
-
-                i++;
             }
-
-            this.RecordLocker.UnLockRecord(FirstLocation);
 
             var input = new InputBuffer(buffer.ToArray());
             var reader = new CompactBinaryReader<InputBuffer>(input);
@@ -544,7 +676,7 @@
             return GetRecords<TE>(Indicies["YawnKeyIndex"].EnumerateAllLocations().ToArray());
         }
 
-        public async Task<T> CreateRecord()
+        public async Task<YawnSchema> CreateRecord()
         {
             var record = Activator.CreateInstance(typeof(T)) as YawnSchema;
             record.Id = this.GetNextID();
@@ -561,40 +693,63 @@
             return this.NextIndex;
         }
 
-        public bool DeleteRecord(T instance)
+        public bool DeleteRecord(YawnSchema instance, ITransaction transaction)
         {
-            var keyIndex = Indicies["YawnKeyIndex"];
-            var existingLocation = keyIndex.GetLocationForInstance(instance) as BlockStorageLocation;
-
-            long location = existingLocation.Address;
-            bool lastBlock = false;
-            var blankHeader = new BlockHeader();
-
-            lock (this.ResizeLock)
+            if (!this.YawnSite.TransactionsEnabled)
             {
+                throw new DatabaseTransactionsAreDisabled();
             }
 
-            lock (this.RecordLocker.LockRecord(location))
-            {
-                while (!lastBlock)
-                {
-                    using (var deleteView = this.MappedFile.CreateViewAccessor(location, this.BlockSize))
-                    {
-                        BlockHeader header;
-                        deleteView.Read<BlockHeader>(0, out header);
-                        lastBlock = (header.BlockProperties & BlockProperties.IsLastBlockInRecord) != 0;
-                        deleteView.Write<BlockHeader>(0, ref blankHeader);
-                        deleteView.Dispose();
+            var keyIndex = this.Indicies["YawnKeyIndex"];
+            var existingLocation = keyIndex.GetLocationForInstance(instance) as BlockStorageLocation;
+            var existingAddresses = GetRecordBlockAddresses(existingLocation);
+            var transactionItem = new BlockTransactionItem();
+            transactionItem.SchemaType = SchemaType.AssemblyQualifiedName;
+            transactionItem.OriginalAddresses = new LinkedList<long>(existingAddresses);
+            transactionItem.OldInstance = instance;
+            transactionItem.ItemAction = Transactions.TransactionAction.Delete;
+            transactionItem.Storage = this;
+            transaction.AddTransactionItem(transactionItem);
 
-                        this.FreeBlocks.AddFreeBlock(location);
-                        location = header.NextBlockLocation;
+            return this.YawnSite.SaveRecord(transaction as YawnSchema) == null ? false : true;
+        }
+
+        public bool DeleteRecord(YawnSchema instance)
+        {
+            long firstLocation = this.GetExistingAddress(instance);
+
+            if(firstLocation == -1 )
+            {
+                return true;
+            }
+
+            long location = firstLocation;
+            bool lastBlock = false;
+            var blankHeader = new BlockHeader();
+            StorageSyncLockCounter lck;
+            lock (lck = this.RecordLocker.LockRecord(location, this.ResizeLock))
+            {
+                using (var unlocker = new StorageUnlocker(lck, this.RecordLocker))
+                {
+                    while (!lastBlock)
+                    {
+                        using (var deleteView = this.MappedFile.CreateViewAccessor(location, this.BlockSize))
+                        {
+                            BlockHeader header;
+                            deleteView.Read<BlockHeader>(0, out header);
+                            lastBlock = (header.BlockProperties & BlockProperties.IsLastBlockInRecord) != 0;
+                            deleteView.Write<BlockHeader>(0, ref blankHeader);
+                            deleteView.Dispose();
+
+                            this.FreeBlocks.AddFreeBlock(location);
+                            location = header.NextBlockLocation;
+                        }
                     }
                 }
             }
 
-            this.RecordLocker.UnLockRecord(location);
             this.DeleteIndeciesForInstance(instance);
-            this.Cache.Remove(existingLocation.Address.ToString());
+            this.Cache.Remove(firstLocation.ToString());
             return true;
         }
 
@@ -672,6 +827,79 @@
             }
 
             return locations;
+        }
+
+        public bool CommitTransactionItem(ITransactionItem transactionItem)
+        {
+            var item = transactionItem as BlockTransactionItem;
+            switch (item.ItemAction)
+            {
+                case Transactions.TransactionAction.Delete:
+                    return this.DeleteRecord(item.OldInstance);
+
+                case Transactions.TransactionAction.Update:
+                case Transactions.TransactionAction.Insert:
+                    return this.CommitSave(transactionItem);
+
+                default:
+                    return false;
+            }
+        }
+
+        public bool RollbackTransactionItem(ITransactionItem transactionItem)
+        {
+            var item = transactionItem as BlockTransactionItem;
+            switch (item.ItemAction)
+            {
+                case Transactions.TransactionAction.Update:
+                case Transactions.TransactionAction.Insert:
+                    return this.RollbackSave(transactionItem);
+                
+                // since delete did nothing on disk simply ignore
+                case Transactions.TransactionAction.Delete:
+                default:
+                    return false;
+            }
+        }
+
+        private long GetExistingAddress(YawnSchema instance)
+        {
+            var keyIndex = this.Indicies["YawnKeyIndex"];
+            var existingLocation = keyIndex.GetLocationForInstance(instance) as BlockStorageLocation;
+            if (existingLocation != null)
+            {
+                return existingLocation.Address;
+            }
+
+            return -1;
+        }
+
+        internal void AddResizer()
+        {
+            lock(this.ResizeLock)
+            {
+                Interlocked.Increment(ref this.Resizers);
+            }
+        }
+
+        internal void RemoveResizer()
+        {
+            lock (this.ResizeLock)
+            {
+                Interlocked.Decrement(ref this.Resizers);
+            }
+        }
+
+        private bool WaitForResizer()
+        {
+            bool someoneWasAlreadyResizing = false;
+            while(this.Resizers>0)
+            {
+                someoneWasAlreadyResizing = true;
+                Thread.Sleep(0);
+            }
+
+            return someoneWasAlreadyResizing;
         }
     }
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously

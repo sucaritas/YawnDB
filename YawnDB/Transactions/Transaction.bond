@@ -1,0 +1,10 @@
+﻿import "TransactionItem.bond"
+import "TransactionState.bond"
+
+namespace YawnDB.Transactions
+
+struct Transaction
+{
+    10: TransactionState State = Created;
+    20: list<TransactionItem> TransactionItems;
+}

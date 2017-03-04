@@ -7,19 +7,5 @@
 
     public interface IStorageOf<T> : IStorage where T : YawnSchema
     {
-        IDictionary<string, IIndex> Indicies { get; }
-
-        Type SchemaType { get; }
-
-        Task<IStorageLocation> SaveRecord(T instanceToSave);
-
-        bool DeleteRecord(T instance);
-
-        Task<T> CreateRecord();
-
-        long GetNextID();
-
-        void ReIndexStorage(IList<IIndex> needReindexing);
-
     }
 }

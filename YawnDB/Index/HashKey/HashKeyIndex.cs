@@ -45,21 +45,19 @@
 
         public bool DeleteIndex(YawnSchema objectToIndex)
         {
-            try
+            
+            if (objectToIndex == null)
             {
-                if (objectToIndex == null)
-                {
-                    return true;
-                }
-
-                var key = this.Getkey(objectToIndex);
-                if (key != null)
-                {
-                    IStorageLocation val;
-                    return this.IndexData.TryRemove(key, out val);
-                }
+                return true;
             }
-            catch { }
+
+            var key = this.Getkey(objectToIndex);
+            if (key != null)
+            {
+                IStorageLocation val;
+                return this.IndexData.TryRemove(key, out val);
+            }
+            
             return false;
         }
 
@@ -259,16 +257,9 @@
 
         public bool UpdateIndex(YawnSchema oldRecord, YawnSchema newRecord, IStorageLocation storageLocation)
         {
-            try
-            {
-                DeleteIndex(oldRecord);
-                SetIndex(newRecord, storageLocation);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            DeleteIndex(oldRecord);
+            SetIndex(newRecord, storageLocation);
+            return true;
         }
     }
 }

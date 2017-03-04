@@ -20,7 +20,7 @@
     using YawnDB.Utils;
     using YawnDB.Exceptions;
 
-    public class MemStorage<T> : IStorageOf<T> where T : YawnSchema
+    public class MemStorage<T> : IStorage where T : YawnSchema
     {
         private IYawn YawnSite;
 
@@ -73,14 +73,34 @@
             this.PerfCounters.InitializeCounter.Increment();
         }
 
-        public async Task<IStorageLocation> SaveRecord(T instanceToSave)
+        public Task<IStorageLocation> InsertRecord(YawnSchema instanceToInsert)
+        {
+            return this.SaveRecord(instanceToInsert);
+        }
+
+        public Task<IStorageLocation> InsertRecord(YawnSchema instanceToInsert, ITransaction transaction)
+        {
+            return this.SaveRecord(instanceToInsert, transaction);
+        }
+
+        public async Task<IStorageLocation> SaveRecord(YawnSchema inputInstance)
+        {
+            using (var transaction = this.YawnSite.CreateTransaction())
+            {
+                var result = await SaveRecord(inputInstance, transaction);
+                transaction.Commit();
+                return result;
+            }
+        }
+
+        public async Task<IStorageLocation> SaveRecord(YawnSchema instanceToSave, ITransaction transaction)
         {
             if (this.State == StorageState.Closed)
             {
                 throw new DatabaseIsClosedException($"An attemp was made to write to database '{this.YawnSite.DatabaseName}' which is closed");
             }
 
-            var instance = Cloner.Clone<T>(instanceToSave);
+            var instance = Cloner.Clone<T>(instanceToSave as T);
             if (instance == null)
             {
                 return null;
@@ -99,7 +119,17 @@
             return new MemStorageLocation() { Id = instance.Id };
         }
 
-        public bool DeleteRecord(T instance)
+        public bool DeleteRecord(YawnSchema instance)
+        {
+            using (var transaction = this.YawnSite.CreateTransaction())
+            {
+                var result = DeleteRecord(instance, transaction);
+                transaction.Commit();
+                return result;
+            }
+        }
+
+        public bool DeleteRecord(YawnSchema instance, ITransaction transaction)
         {
             if (this.State == StorageState.Closed)
             {
@@ -157,7 +187,7 @@
             return this.ItemsInMemmory.Values.Select(x=> PropagateSite(x as TE) as TE);
         }
 
-        public async Task<T> CreateRecord()
+        public async Task<YawnSchema> CreateRecord()
         {
             var record = Activator.CreateInstance(typeof(T)) as T;
             record.Id = this.GetNextID();
@@ -220,6 +250,16 @@
             }
 
             return locations;
+        }
+
+        public bool CommitTransactionItem(ITransactionItem transactionItem)
+        {
+            return true;
+        }
+
+        public bool RollbackTransactionItem(ITransactionItem transactionItem)
+        {
+            return true;
         }
     }
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously

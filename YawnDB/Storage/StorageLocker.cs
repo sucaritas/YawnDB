@@ -1,4 +1,4 @@
-﻿namespace YawnDB.Storage.BlockStorage
+﻿namespace YawnDB.Storage
 {
     using System;
     using System.Collections.Concurrent;
@@ -9,56 +9,52 @@
     using System.Threading;
     using System.Diagnostics;
 
-    public class BlockStorageSyncLock
+    public class StorageSyncLockCounter
     {
+        public long Id;
         public int Readers = 0;
     }
 
-    public class BlockStorageLocker
+    public class StorageLocker
     {
         private PerformanceCounter ContentionCounter;
 
-        private ConcurrentDictionary<long, BlockStorageSyncLock> Locks = new ConcurrentDictionary<long, BlockStorageSyncLock>();
+        private ConcurrentDictionary<long, StorageSyncLockCounter> Locks = new ConcurrentDictionary<long, StorageSyncLockCounter>();
 
-        public BlockStorageLocker(PerformanceCounter contentionCounter)
+        public StorageLocker(PerformanceCounter contentionCounter)
         {
             this.ContentionCounter = contentionCounter;
         }
 
-        public BlockStorageSyncLock LockRecord(long id)
+        public StorageSyncLockCounter LockRecord(long id, object dependentLock)
         {
-            BlockStorageSyncLock mylock = new BlockStorageSyncLock(); ;
-
+            StorageSyncLockCounter mylock = new StorageSyncLockCounter() { Id = id } ;
             mylock = Locks.GetOrAdd(id, mylock);
+            if (dependentLock != null)
+            {
+                lock (dependentLock)
+                {
+                    Interlocked.Increment(ref mylock.Readers);
+                }
+            }
+
             Interlocked.Increment(ref mylock.Readers);
             return mylock;
         }
 
         public void UnLockRecord(long id)
         {
-            BlockStorageSyncLock mylock;
+            StorageSyncLockCounter mylock;
 
             if (Locks.TryGetValue(id, out mylock))
             {
                 Interlocked.Decrement(ref mylock.Readers);
-
-                if (mylock.Readers == 0)
-                {
-                    lock (mylock)
-                    {
-                        if (mylock.Readers == 0)
-                        {
-                            BlockStorageSyncLock temp;
-                            Locks.TryRemove(id, out temp);
-                        }
-                    }
-                }
             }
         }
 
         public void WaitForRecord(long id, int minReaders = 0)
         {
-            BlockStorageSyncLock mylock;
+            StorageSyncLockCounter mylock;
             if (Locks.TryGetValue(id, out mylock))
             {
                 while (mylock.Readers > minReaders)
@@ -77,7 +73,6 @@
                 {
                     while (lockKV.Value.Readers > minReaders)
                     {
-                        ContentionCounter.Increment();
                         Thread.Sleep(0);
                     }
                 }

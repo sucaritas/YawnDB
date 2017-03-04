@@ -1,0 +1,10 @@
+﻿import "..\..\Transactions\TransactionItem.bond"
+namespace YawnDB.Storage.BlockStorage
+
+
+struct BlockTransactionItem : YawnDB.Transactions.TransactionItem
+{
+    31: list<int64> OriginalAddresses;
+    32: list<int64> BlockAddresses;
+
+}

@@ -29,6 +29,7 @@
             Console.WriteLine("Initializing schema storage");
             System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
             timer.Start();
+            myDB.Open();
             Console.WriteLine("Finished in " + timer.ElapsedMilliseconds);
             timer.Stop();
 
@@ -75,21 +76,22 @@
                 Console.WriteLine("Total time so far " + runningInsertTime + "ms");
 
                 timer.Reset();
-                timer.Start();
-                var myClass = myDB.CreateRecord<Classes>();
-                myClass.Students.RefrencedIds.AddLast(1);
-                myClass.Students.RefrencedIds.AddLast(2);
-                myClass.Students.RefrencedIds.AddLast(3);
+                //timer.Start();
+                //var myClass = myDB.CreateRecord<Classes>();
+                //myClass.Students.RefrencedIds.AddLast(1);
+                //myClass.Students.RefrencedIds.AddLast(2);
+                //myClass.Students.RefrencedIds.AddLast(3);
 
                 //var res = myDB.Students.Select(x => x.FirstName);
-                var res = myClass.Students.Select(x => x.FirstName);
-                var results = res.ToArray();
-                timer.Stop();
-                Console.WriteLine("Enumerated ALL ("+ results.Length.ToString("0,0")+ ") in  " + timer.ElapsedMilliseconds+"ms");
-                foreach (var st in results)
-                {
-                    Console.WriteLine(st);
-                }
+                //var res = myClass.Students.Select(x => x.FirstName);
+                //var res = myClass.Students;
+                //var results = res.ToArray();
+                //timer.Stop();
+                //Console.WriteLine("Enumerated ALL ("+ results.Length.ToString("0,0")+ ") in  " + timer.ElapsedMilliseconds+"ms");
+                //foreach (var st in results)
+                //{
+                //    Console.WriteLine(st.Id + ".-" + st.FirstName + " " + st.LastName + " - " + st.Age);
+                //}
                 Console.WriteLine("___________________________________________________________________");
 
                 //timer.Reset();

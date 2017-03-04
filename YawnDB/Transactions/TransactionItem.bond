@@ -1,0 +1,8 @@
+﻿import "TransactionAction.bond"
+namespace YawnDB.Transactions
+
+struct TransactionItem
+{
+    21: string SchemaType;
+    22: YawnDB.Transactions.TransactionAction ItemAction = Insert;
+}

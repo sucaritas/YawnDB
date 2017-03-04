@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\packages\Bond.CSharp.5.0.0\build\Bond.CSharp.props" Condition="Exists('..\packages\Bond.CSharp.5.0.0\build\Bond.CSharp.props')" />
+  <Import Project="..\packages\Bond.CSharp.5.2.0\build\Bond.CSharp.props" Condition="Exists('..\packages\Bond.CSharp.5.2.0\build\Bond.CSharp.props')" />
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -36,19 +36,23 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Bond, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Bond.Core.CSharp.5.0.0\lib\net45\Bond.dll</HintPath>
+      <HintPath>..\packages\Bond.Core.CSharp.5.2.0\lib\net45\Bond.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Bond.Attributes, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Bond.Core.CSharp.5.0.0\lib\net45\Bond.Attributes.dll</HintPath>
+      <HintPath>..\packages\Bond.Core.CSharp.5.2.0\lib\net45\Bond.Attributes.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Bond.IO, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Bond.Core.CSharp.5.0.0\lib\net45\Bond.IO.dll</HintPath>
+      <HintPath>..\packages\Bond.Core.CSharp.5.2.0\lib\net45\Bond.IO.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Bond.JSON, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Bond.Runtime.CSharp.5.0.0\lib\net45\Bond.JSON.dll</HintPath>
+      <HintPath>..\packages\Bond.Runtime.CSharp.5.2.0\lib\net45\Bond.JSON.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Bond.Reflection, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Bond.Core.CSharp.5.2.0\lib\net45\Bond.Reflection.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
@@ -67,11 +71,12 @@
   <ItemGroup>
     <Compile Include="EventSources\StorageEventSource.cs" />
     <Compile Include="Exceptions\DatabaseIsClosedException.cs" />
+    <Compile Include="Exceptions\DatabaseTransactionsAreDisabled.cs" />
     <Compile Include="PerformanceCounters\StorageCounters.cs" />
     <BondCodegen Include="Storage\BlockStorage\BlockStorageLocation.bond" />
     <Compile Include="QueryProcessor.cs" />
-    <Compile Include="Storage\BlockStorage\BlockStorageLocation.cs" />
-    <Compile Include="Storage\BlockStorage\BlockStorageSyncLock.cs" />
+    <Compile Include="Storage\BlockStorage\BlockStorageUnlocker.cs" />
+    <Compile Include="Storage\StorageLocker.cs" />
     <Compile Include="Storage\BlockStorage\FreeBlocks.cs" />
     <Compile Include="IndexParams.cs" />
     <Compile Include="Exceptions\RegistrationException.cs" />
@@ -84,6 +89,9 @@
     <Compile Include="Storage\MemStorage\MemStorage.cs" />
     <Compile Include="Storage\MemStorage\MemStorageLocation.cs" />
     <Compile Include="Storage\StorageLocation.cs" />
+    <Compile Include="Storage\StorageUnlocker.cs" />
+    <Compile Include="Transactions\Transaction.cs" />
+    <Compile Include="Transactions\TransactionItem.cs" />
     <Compile Include="Utils\Utilities.cs" />
     <Compile Include="Yawn.cs" />
   </ItemGroup>
@@ -96,6 +104,11 @@
     </None>
     <None Include="packages.config" />
     <BondCodegen Include="Storage\StorageLocation.bond" />
+    <BondCodegen Include="Transactions\Transaction.bond" />
+    <BondCodegen Include="Transactions\TransactionItem.bond" />
+    <BondCodegen Include="Storage\BlockStorage\BlockTransactionItem.bond" />
+    <BondCodegen Include="Transactions\TransactionAction.bond" />
+    <BondCodegen Include="Transactions\TransactionState.bond" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Yawn.DataSchemas\Yawn.DataSchemas.csproj">
@@ -113,10 +126,10 @@
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\Bond.CSharp.5.0.0\build\Bond.CSharp.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Bond.CSharp.5.0.0\build\Bond.CSharp.props'))" />
-    <Error Condition="!Exists('..\packages\Bond.CSharp.5.0.0\build\Bond.CSharp.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Bond.CSharp.5.0.0\build\Bond.CSharp.targets'))" />
+    <Error Condition="!Exists('..\packages\Bond.CSharp.5.2.0\build\Bond.CSharp.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Bond.CSharp.5.2.0\build\Bond.CSharp.props'))" />
+    <Error Condition="!Exists('..\packages\Bond.CSharp.5.2.0\build\Bond.CSharp.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Bond.CSharp.5.2.0\build\Bond.CSharp.targets'))" />
   </Target>
-  <Import Project="..\packages\Bond.CSharp.5.0.0\build\Bond.CSharp.targets" Condition="Exists('..\packages\Bond.CSharp.5.0.0\build\Bond.CSharp.targets')" />
+  <Import Project="..\packages\Bond.CSharp.5.2.0\build\Bond.CSharp.targets" Condition="Exists('..\packages\Bond.CSharp.5.2.0\build\Bond.CSharp.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

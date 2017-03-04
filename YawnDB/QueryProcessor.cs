@@ -15,7 +15,7 @@
         private ReferenceTo<T> SchemaReference;
         private static Type SchemaType = typeof(T);
         private static Type ReferencingType = typeof(YawnSchema).Assembly.GetType("YawnDB.Referencing`1["+ typeof(T).FullName + "]");
-        private static PropertyInfo RefrencedIdsProperty = ReferencingType.GetProperty("RefrencedIds");
+        private static PropertyInfo RefrencedIdsProperty = ReferencingType?.GetProperty("RefrencedIds");
 
         public Expression ParseQuery(Expression expression, ReferenceTo<T> schemaReference)
         {

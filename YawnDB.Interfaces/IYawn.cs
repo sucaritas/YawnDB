@@ -9,6 +9,8 @@
 
     public interface IYawn
     {
+        bool TransactionsEnabled { get; }
+
         string DatabaseName { get; }
 
         string DefaultStoragePath { get; }
@@ -17,7 +19,7 @@
 
         ConcurrentDictionary<Type, IStorage> RegisteredStorageTypes { get; }
 
-        bool RegisterSchema<T>(IStorageOf<T> storage) where T : YawnSchema;
+        bool RegisterSchema<T>(IStorage storage) where T : YawnSchema;
 
         bool UnRegisterSchema(Type schemaToUnregister);
 
@@ -27,6 +29,20 @@
 
         void Close();
 
-        void Open();
+        void Open(bool enableTransactions);
+
+        ITransaction CreateTransaction();
+
+        void ReplayTransactionLog();
+
+        void PurgeTransactionLog();
+
+        Task<IStorageLocation> SaveRecord(YawnSchema instance);
+
+        Task<IStorageLocation> SaveRecord(YawnSchema instance, ITransaction transaction);
+
+        bool DeleteRecord(YawnSchema instance);
+
+        bool DeleteRecord(YawnSchema instance, ITransaction transaction);
     }
 }

@@ -1,0 +1,8 @@
+﻿namespace YawnDB.Transactions
+
+enum TransactionAction
+{
+    Insert =0,
+    Update = 1,
+    Delete = 2,
+}

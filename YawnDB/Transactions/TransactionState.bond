@@ -1,0 +1,11 @@
+﻿namespace YawnDB.Transactions
+
+
+enum TransactionState
+{
+    Created = 0,
+    CommitStarted = 1,
+    Commited = 2,
+    RollBackStarted = 3,
+    RolledBack = 4,
+}

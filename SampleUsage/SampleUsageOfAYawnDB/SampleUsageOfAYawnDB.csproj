@@ -64,11 +64,11 @@
     <Reference Include="System.Xml" />
     <Reference Include="YawnDB, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\YawnDB\bin\Debug\YawnDB.dll</HintPath>
+      <HintPath>..\..\YawnDB\bin\$(Configuration)\YawnDB.dll</HintPath>
     </Reference>
     <Reference Include="YawnDB.Interfaces, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\YawnDB\bin\Debug\YawnDB.Interfaces.dll</HintPath>
+      <HintPath>..\..\YawnDB\bin\$(Configuration)\YawnDB.Interfaces.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

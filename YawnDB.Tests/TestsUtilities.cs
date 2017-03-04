@@ -15,24 +15,34 @@
         {
             if (System.IO.Directory.Exists(folder))
             {
-                System.IO.Directory.Delete(folder, true);
+                try
+                {
+                    System.IO.Directory.Delete(folder, true);
+                }
+                catch { }
             }
 
             System.IO.Directory.CreateDirectory(folder);
         }
 
-        public static Tuple<Person, IStorageLocation> writeRandomStudentToStorage(IStorageOf<Person> storage)
+        public static Tuple<Person, IStorageLocation> writeRandomPersonToStorage(IStorage storage)
         {
             string[] names = new[] { "Julio", "Miguel", "Marco", "Omar", "Rene" };
             string[] lastNames = new[] { "Saenz", "Telles", "Ruelas", "Quirino", "Sandoval" };
             int[] ages = new[] { 37, 38, 39, 43, 17 };
 
             Random rnd = new Random();
-            var student = storage.CreateRecord().Result;
+            var student = storage.CreateRecord().Result as Person;
             student.Age = ages[rnd.Next(5)];
             student.FirstName = names[rnd.Next(5)];
             student.LastName = lastNames[rnd.Next(5)];
             var location = storage.SaveRecord(student).Result;
+
+            if (location == null)
+            {
+                throw new Exception("write execption");
+            }
+
             return new Tuple<Person, IStorageLocation>(student, location);
         }
     }

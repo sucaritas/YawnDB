@@ -15,6 +15,7 @@
         public const string InitializeCounterName = "# Times Storage has initialized";
         public const string RecordWriteCounterName = "# Record Writes";
         public const string RecordReadCounterName = "# Record Reads";
+        public const string RecordReadFromCacheCounterName = "# Record Reads From Cache";
         public const string RecordDeleteCounterName = "# Record deletes";
         public const string IndexingCounterName = "# Record indexing";
         public const string ResizeCounterName = "# Storage resizes";
@@ -23,6 +24,7 @@
         public PerformanceCounter InitializeCounter { get; private set;}
         public PerformanceCounter RecordWriteCounter { get; private set; }
         public PerformanceCounter RecordReadCounter { get; private set; }
+        public PerformanceCounter RecordReadFromCacheCounter { get; private set; }
         public PerformanceCounter RecordDeleteCounter { get; private set; }
         public PerformanceCounter IndexingCounter { get; private set; }
         public PerformanceCounter ResizeCounter { get; private set; }
@@ -47,6 +49,9 @@
 
             this.RecordReadCounter = new PerformanceCounter(CounterCategoryName, RecordReadCounterName, InstanceName, false);
             this.RecordReadCounter.RawValue = 0;
+
+            this.RecordReadFromCacheCounter = new PerformanceCounter(CounterCategoryName, RecordReadFromCacheCounterName, InstanceName, false);
+            this.RecordReadFromCacheCounter.RawValue = 0;
 
             this.RecordDeleteCounter = new PerformanceCounter(CounterCategoryName, RecordDeleteCounterName, InstanceName, false);
             this.RecordDeleteCounter.RawValue = 0;
@@ -81,6 +86,11 @@
                 recordReadCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
                 recordReadCount.CounterName = RecordReadCounterName;
                 counterDataCollection.Add(recordReadCount);
+
+                CounterCreationData recordReadCacheCount = new CounterCreationData();
+                recordReadCacheCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
+                recordReadCacheCount.CounterName = RecordReadFromCacheCounterName;
+                counterDataCollection.Add(recordReadCacheCount);
 
                 CounterCreationData recordDeleteCount = new CounterCreationData();
                 recordDeleteCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
