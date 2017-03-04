@@ -5,4 +5,4 @@ packages/
 bin/
 obj/
 objd/
-Yawn.DataSchemas.csproj.user
+*.csproj.user
