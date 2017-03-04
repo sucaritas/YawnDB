@@ -29,7 +29,7 @@
             Console.WriteLine("Initializing schema storage");
             System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
             timer.Start();
-            myDB.Open();
+            myDB.Open(false);
             Console.WriteLine("Finished in " + timer.ElapsedMilliseconds);
             timer.Stop();
 

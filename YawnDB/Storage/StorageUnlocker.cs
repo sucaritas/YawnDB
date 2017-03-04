@@ -28,7 +28,7 @@
                 if (disposing)
                 {
                     // dispose managed state (managed objects).
-                    this.RecordLocker.UnLockRecord(this.SyncCounter.Id);
+                    this.RecordLocker.UnLockRecord(this.SyncCounter);
                     this.RecordLocker = null;
                     this.SyncCounter = null;
                 }

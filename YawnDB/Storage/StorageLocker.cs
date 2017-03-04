@@ -35,6 +35,7 @@
                 lock (dependentLock)
                 {
                     Interlocked.Increment(ref mylock.Readers);
+                    return mylock;
                 }
             }
 
@@ -50,6 +51,11 @@
             {
                 Interlocked.Decrement(ref mylock.Readers);
             }
+        }
+
+        public void UnLockRecord(StorageSyncLockCounter mylock)
+        {
+            Interlocked.Decrement(ref mylock.Readers);
         }
 
         public void WaitForRecord(long id, int minReaders = 0)

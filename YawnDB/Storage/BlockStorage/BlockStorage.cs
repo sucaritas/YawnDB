@@ -288,8 +288,8 @@
                 transactionItem.ItemAction = Transactions.TransactionAction.Update;
                 transactionItem.SchemaType = SchemaType.AssemblyQualifiedName;
                 transactionItem.OriginalAddresses = new LinkedList<long>(existingAddresses);
-                transactionItem.OldInstance = existingInstance;
-                transactionItem.NewInstance = instance;
+                transactionItem.OldInstance = existingInstance ?? (T)Activator.CreateInstance(SchemaType);
+                transactionItem.NewInstance = instance ?? (T)Activator.CreateInstance(SchemaType);
                 transactionItem.BlockAddresses = new LinkedList<long>(addresses);
                 transactionItem.Storage = this;
                 transaction.AddTransactionItem(transactionItem);
@@ -355,7 +355,6 @@
 
             var location = new BlockStorageLocation() { Address = item.BlockAddresses.First() };
             Cache.Set(item.BlockAddresses.First().ToString(), item.NewInstance, new CacheItemPolicy());
-            UpdateIndeciesForInstance(item.OldInstance, item.NewInstance, location as StorageLocation);
 
             // Get existing adress for deletion
             if (item.OldInstance != null)
@@ -363,24 +362,28 @@
                 bool commitOk;
                 var keyIndex = this.Indicies["YawnKeyIndex"];
                 var existingLocation = keyIndex.GetLocationForInstance(item.OldInstance) as BlockStorageLocation;
-                Cache.Remove(existingLocation.Address.ToString());
-                this.RecordLocker.WaitForRecord(existingLocation.Address, 1);
-                StorageSyncLockCounter lck;
-                lock (lck = this.RecordLocker.LockRecord(existingLocation.Address, this.ResizeLock))
+                if (existingLocation != null)
                 {
-                    using (var unlocker = new StorageUnlocker(lck, this.RecordLocker))
+                    Cache.Remove(existingLocation.Address.ToString());
+                    this.RecordLocker.WaitForRecord(existingLocation.Address, 1);
+                    StorageSyncLockCounter lck;
+                    lock (lck = this.RecordLocker.LockRecord(existingLocation.Address, this.ResizeLock))
                     {
-                        List<long> existingAddress = GetRecordBlockAddresses(existingLocation);
-                        commitOk = existingAddress.Select(x => FreeBlock(x)).Any(x => x == false);
+                        using (var unlocker = new StorageUnlocker(lck, this.RecordLocker))
+                        {
+                            List<long> existingAddress = GetRecordBlockAddresses(existingLocation);
+                            commitOk = existingAddress.Select(x => FreeBlock(x)).Any(x => x == false);
+                        }
                     }
-                }
 
-                if (!commitOk)
-                {
-                    return false;
+                    if (!commitOk)
+                    {
+                        return false;
+                    }
                 }
             }
 
+            UpdateIndeciesForInstance(item.OldInstance, item.NewInstance, location as StorageLocation);
             this.PerfCounters.RecordWriteCounter.Increment();
             return true;
         }
@@ -400,28 +403,32 @@
                 }
             }
 
-            using (var unlocker = new StorageUnlocker(this.RecordLocker.LockRecord(item.OriginalAddresses.First(), this.ResizeLock), this.RecordLocker))
+            if (item.OriginalAddresses.Count > 0)
             {
-                foreach (var blockLocation in item.OriginalAddresses)
+                using (var unlocker = new StorageUnlocker(this.RecordLocker.LockRecord(item.OriginalAddresses.First(), this.ResizeLock), this.RecordLocker))
                 {
-                    using (var viewWriter = this.MappedFile.CreateViewAccessor(blockLocation, this.BlockSize))
+                    foreach (var blockLocation in item.OriginalAddresses)
                     {
-                        BlockHeader header;
-                        viewWriter.Read<BlockHeader>(0, out header);
-                        var headerSize = BlockHelpers.GetHeaderSize();
-                        // commit the block
-                        header.BlockProperties = (byte)(header.BlockProperties & BlockProperties.IsCommited);
-                        // Un-Free the block
-                        header.BlockProperties = (byte)(header.BlockProperties & BlockProperties.InUse);
-                        viewWriter.Write<BlockHeader>(0, ref header);
-                        viewWriter.Flush();
-                        viewWriter.Dispose();
+                        using (var viewWriter = this.MappedFile.CreateViewAccessor(blockLocation, this.BlockSize))
+                        {
+                            BlockHeader header;
+                            viewWriter.Read<BlockHeader>(0, out header);
+                            var headerSize = BlockHelpers.GetHeaderSize();
+                            // commit the block
+                            header.BlockProperties = (byte)(header.BlockProperties & BlockProperties.IsCommited);
+                            // Un-Free the block
+                            header.BlockProperties = (byte)(header.BlockProperties & BlockProperties.InUse);
+                            viewWriter.Write<BlockHeader>(0, ref header);
+                            viewWriter.Flush();
+                            viewWriter.Dispose();
+                        }
                     }
                 }
+
+                Cache.Set(item.OriginalAddresses.First().ToString(), item.OldInstance, new CacheItemPolicy());
+                this.UpdateIndeciesForInstance(item.NewInstance, item.OldInstance, new BlockStorageLocation() { Address = item.OriginalAddresses.First() });
             }
 
-            Cache.Set(item.OriginalAddresses.First().ToString(), item.OldInstance, new CacheItemPolicy());
-            this.UpdateIndeciesForInstance(item.NewInstance, item.OldInstance, new BlockStorageLocation() { Address = item.OriginalAddresses.First() });
             return true;
         }
 
@@ -497,7 +504,6 @@
         {
             long address;
             List<long> addresses = new List<long>();
-            this.WaitForResizer();
 
             for (int i = 0; i < numberOfBlocks; i++)
             {
@@ -514,6 +520,12 @@
 
         public void ResizeFile(int nuberOfBlocks)
         {
+            if(this.WaitForResizer())
+            {
+                // If someone was already resizing the storage then there is no need to redo the resize
+                return;
+            }
+
             // Allreaders must be closed, the Memory Mapped file must be closed
             // therfore we must be mutualy exclusive form reads
             lock (this.ResizeLock)
@@ -706,7 +718,8 @@
             var transactionItem = new BlockTransactionItem();
             transactionItem.SchemaType = SchemaType.AssemblyQualifiedName;
             transactionItem.OriginalAddresses = new LinkedList<long>(existingAddresses);
-            transactionItem.OldInstance = instance;
+            transactionItem.OldInstance = instance ?? (T)Activator.CreateInstance(SchemaType);
+            transactionItem.NewInstance =  (T)Activator.CreateInstance(SchemaType);
             transactionItem.ItemAction = Transactions.TransactionAction.Delete;
             transactionItem.Storage = this;
             transaction.AddTransactionItem(transactionItem);
@@ -884,10 +897,7 @@
 
         internal void RemoveResizer()
         {
-            lock (this.ResizeLock)
-            {
-                Interlocked.Decrement(ref this.Resizers);
-            }
+            Interlocked.Decrement(ref this.Resizers);
         }
 
         private bool WaitForResizer()
