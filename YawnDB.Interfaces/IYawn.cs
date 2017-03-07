@@ -37,9 +37,9 @@
 
         void PurgeTransactionLog();
 
-        Task<IStorageLocation> SaveRecord(YawnSchema instance);
+        IStorageLocation SaveRecord(YawnSchema instance);
 
-        Task<IStorageLocation> SaveRecord(YawnSchema instance, ITransaction transaction);
+        IStorageLocation SaveRecord(YawnSchema instance, ITransaction transaction);
 
         bool DeleteRecord(YawnSchema instance);
 

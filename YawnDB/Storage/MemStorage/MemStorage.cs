@@ -73,27 +73,27 @@
             this.PerfCounters.InitializeCounter.Increment();
         }
 
-        public Task<IStorageLocation> InsertRecord(YawnSchema instanceToInsert)
+        public IStorageLocation InsertRecord(YawnSchema instanceToInsert)
         {
             return this.SaveRecord(instanceToInsert);
         }
 
-        public Task<IStorageLocation> InsertRecord(YawnSchema instanceToInsert, ITransaction transaction)
+        public IStorageLocation InsertRecord(YawnSchema instanceToInsert, ITransaction transaction)
         {
             return this.SaveRecord(instanceToInsert, transaction);
         }
 
-        public async Task<IStorageLocation> SaveRecord(YawnSchema inputInstance)
+        public IStorageLocation SaveRecord(YawnSchema inputInstance)
         {
             using (var transaction = this.YawnSite.CreateTransaction())
             {
-                var result = await SaveRecord(inputInstance, transaction);
+                var result = SaveRecord(inputInstance, transaction);
                 transaction.Commit();
                 return result;
             }
         }
 
-        public async Task<IStorageLocation> SaveRecord(YawnSchema instanceToSave, ITransaction transaction)
+        public IStorageLocation SaveRecord(YawnSchema instanceToSave, ITransaction transaction)
         {
             if (this.State == StorageState.Closed)
             {
@@ -147,26 +147,6 @@
 
         private List<PropertyInfo> ReferencingProperties = new List<PropertyInfo>();
 
-        public async Task<IEnumerable<TE>> GetRecordsAsync<TE>(IEnumerable<IStorageLocation> recordsToPull) where TE : YawnSchema
-        {
-            List<TE> records = new List<TE>();
-            foreach (var location in recordsToPull)
-            {
-                T record;
-                if (ItemsInMemmory.TryGetValue((location as MemStorageLocation).Id, out record))
-                {
-                    records.Add(PropagateSite(record as TE) as TE);
-                }
-            }
-
-            return records.ToArray();
-        }
-
-        public async Task<IEnumerable<TE>> GetAllRecordsAsync<TE>() where TE : YawnSchema
-        {
-            return this.ItemsInMemmory.Values.Select(x=> PropagateSite(x as TE) as TE);
-        }
-
         public IEnumerable<TE> GetRecords<TE>(IEnumerable<IStorageLocation> recordsToPull) where TE : YawnSchema
         {
             List<T> records = new List<T>();
@@ -187,7 +167,7 @@
             return this.ItemsInMemmory.Values.Select(x=> PropagateSite(x as TE) as TE);
         }
 
-        public async Task<YawnSchema> CreateRecord()
+        public YawnSchema CreateRecord()
         {
             var record = Activator.CreateInstance(typeof(T)) as T;
             record.Id = this.GetNextID();

@@ -61,7 +61,7 @@
             Assert.AreEqual(blockSize * bufferBlocks, info.Length);
            
             var writeResult = writeRandomPersonToStorage(storage);
-            var personRead = storage.ReadRecord(writeResult.Item2).Result;
+            var personRead = storage.ReadRecord(writeResult.Item2);
             Assert.AreEqual(writeResult.Item1.FirstName, personRead.FirstName);
             Assert.AreEqual(writeResult.Item1.LastName, personRead.LastName);
             Assert.AreEqual(writeResult.Item1.Age, personRead.Age);
@@ -120,7 +120,7 @@
 
             try
             {
-                var personRead = storage.ReadRecord(writeResult.Item2).Result;
+                var personRead = storage.ReadRecord(writeResult.Item2);
                 Assert.Fail("Should have thrown exception");
             }
             catch (Exception e)
@@ -204,7 +204,7 @@
                     {
                         var prn = personRef.ToArray()[i % 10];
                         prn.FirstName = i.ToString();
-                        var res = yawnDB.SaveRecord(prn).Result;
+                        var res = yawnDB.SaveRecord(prn);
                     });
 
                     threads[i].Start();

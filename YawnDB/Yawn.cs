@@ -89,10 +89,10 @@
         {
             IStorage storage;
             RegisteredStorageTypes.TryGetValue(typeof(T), out storage);
-            return storage.CreateRecord().Result as T;
+            return storage.CreateRecord() as T;
         }
 
-        public Task<IStorageLocation> SaveRecord(YawnSchema instance, ITransaction transaction)
+        public IStorageLocation SaveRecord(YawnSchema instance, ITransaction transaction)
         {
             if(!this.TransactionsEnabled)
             {
@@ -104,7 +104,7 @@
             return storage.SaveRecord(instance, transaction);
         }
 
-        public Task<IStorageLocation> SaveRecord(YawnSchema instance)
+        public IStorageLocation SaveRecord(YawnSchema instance)
         {
             IStorage storage;
             RegisteredStorageTypes.TryGetValue(instance.GetType(), out storage);
@@ -174,7 +174,7 @@
         {
             IStorage transactionStorage;
             RegisteredStorageTypes.TryGetValue(typeof(Transaction), out transactionStorage);
-            foreach(var transaction in transactionStorage.GetAllRecordsAsync<Transaction>().Result)
+            foreach(var transaction in transactionStorage.GetAllRecords<Transaction>())
             {
                 if(transaction.State == TransactionState.Commited)
                 {
@@ -190,7 +190,7 @@
         {
             IStorage transactionStorage;
             RegisteredStorageTypes.TryGetValue(typeof(Transaction), out transactionStorage);
-            foreach (var transaction in transactionStorage.GetAllRecordsAsync<Transaction>().Result)
+            foreach (var transaction in transactionStorage.GetAllRecords<Transaction>())
             {
                 if (transaction.State != TransactionState.Created)
                 {

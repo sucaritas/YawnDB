@@ -32,11 +32,11 @@
             int[] ages = new[] { 37, 38, 39, 43, 17 };
 
             Random rnd = new Random();
-            var student = storage.CreateRecord().Result as Person;
+            var student = storage.CreateRecord() as Person;
             student.Age = ages[rnd.Next(5)];
             student.FirstName = names[rnd.Next(5)];
             student.LastName = lastNames[rnd.Next(5)];
-            var location = storage.SaveRecord(student).Result;
+            var location = storage.SaveRecord(student);
 
             if (location == null)
             {

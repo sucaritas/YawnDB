@@ -105,7 +105,7 @@
             var storage = new BlockStorage<Transaction>(yawnDB, blockSize, bufferBlocks);
             yawnDB.RegisterSchema<Transaction>(storage);
             yawnDB.Open(false);
-            var trans = storage.CreateRecord().Result as Transaction;
+            var trans = storage.CreateRecord() as Transaction;
             trans.Id = 13;
             trans.State = TransactionState.Created;
             trans.TransactionItems = new LinkedList<TransactionItem>();
@@ -113,12 +113,12 @@
 
             trans.TransactionItems.AddLast(item);
 
-            var location = storage.SaveRecord(trans).Result;
+            var location = storage.SaveRecord(trans);
             var index = storage.Indicies["YawnKeyIndex"] as HashKeyIndex;
             var locationInIndex = index.GetLocationForInstance(trans);
             Assert.AreEqual(location, locationInIndex);
 
-            var read = storage.ReadRecord(location).Result;
+            var read = storage.ReadRecord(location);
 
             Assert.AreEqual(trans.Id, read.Id);
             Assert.AreEqual(trans.State, read.State);

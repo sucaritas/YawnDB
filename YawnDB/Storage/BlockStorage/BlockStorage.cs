@@ -194,17 +194,17 @@
             this.PerfCounters.InitializeCounter.Increment();
         }
 
-        public Task<IStorageLocation> InsertRecord(YawnSchema instanceToInsert)
+        public IStorageLocation InsertRecord(YawnSchema instanceToInsert)
         {
             return this.SaveRecord(instanceToInsert);
         }
 
-        public Task<IStorageLocation> InsertRecord(YawnSchema instanceToInsert, ITransaction transaction)
+        public IStorageLocation InsertRecord(YawnSchema instanceToInsert, ITransaction transaction)
         {
             return this.SaveRecord(instanceToInsert, transaction);
         }
 
-        public async Task<IStorageLocation> SaveRecord(YawnSchema inputInstance, ITransaction transaction)
+        public IStorageLocation SaveRecord(YawnSchema inputInstance, ITransaction transaction)
         {
             if (this.State == StorageState.Closed)
             {
@@ -279,7 +279,7 @@
 
             var keyIndex = this.Indicies["YawnKeyIndex"];
             var existingLocation = keyIndex.GetLocationForInstance(instance) as BlockStorageLocation;
-            T existingInstance = ReadRecord(existingLocation).Result;
+            T existingInstance = ReadRecord(existingLocation);
             List<long> existingAddresses = GetRecordBlockAddresses(existingLocation);
 
             if (isTransaction)
@@ -294,7 +294,7 @@
                 transactionItem.Storage = this;
                 transaction.AddTransactionItem(transactionItem);
 
-                var transactionLocation = this.YawnSite.SaveRecord(transaction as YawnSchema).Result;
+                var transactionLocation = this.YawnSite.SaveRecord(transaction as YawnSchema);
                 if (transactionLocation == null)
                 {
                     return null;
@@ -327,7 +327,7 @@
             }
         }
 
-        public Task<IStorageLocation> SaveRecord(YawnSchema inputInstance)
+        public IStorageLocation SaveRecord(YawnSchema inputInstance)
         {
             return this.SaveRecord(inputInstance, null);
         }
@@ -565,30 +565,7 @@
             }
         }
 
-        public async Task<IEnumerable<TE>> GetRecordsAsync<TE>(IEnumerable<IStorageLocation> recordsToPull) where TE : YawnSchema
-        {
-            if (recordsToPull == null)
-            {
-                return Enumerable.Empty<TE>();
-            }
-
-            List<Task<T>> pendingRecords = new List<Task<T>>();
-            foreach (var location in recordsToPull)
-            {
-                if (location == null)
-                {
-                    continue;
-                }
-
-                pendingRecords.Add(this.ReadRecord(location));
-            }
-
-            Task.WaitAll(pendingRecords.ToArray());
-
-            return pendingRecords.Where(x => x.Result != null).Select(x => x.Result as TE);
-        }
-
-        public async Task<T> ReadRecord(IStorageLocation fromLocation)
+        public T ReadRecord(IStorageLocation fromLocation)
         {
             if (this.State == StorageState.Closed)
             {
@@ -658,11 +635,6 @@
             return blockSize;
         }
 
-        public async Task<IEnumerable<TE>> GetAllRecordsAsync<TE>() where TE : YawnSchema
-        {
-            return await GetRecordsAsync<TE>(Indicies["YawnKeyIndex"].EnumerateAllLocations());
-        }
-
         public IEnumerable<TE> GetRecords<TE>(IEnumerable<IStorageLocation> recordsToPull) where TE : YawnSchema
         {
             if (recordsToPull == null)
@@ -677,7 +649,7 @@
                     continue;
                 }
 
-                yield return this.ReadRecord(location).Result as TE;
+                yield return this.ReadRecord(location) as TE;
             }
 
             yield break;
@@ -688,7 +660,7 @@
             return GetRecords<TE>(Indicies["YawnKeyIndex"].EnumerateAllLocations().ToArray());
         }
 
-        public async Task<YawnSchema> CreateRecord()
+        public YawnSchema CreateRecord()
         {
             var record = Activator.CreateInstance(typeof(T)) as YawnSchema;
             record.Id = this.GetNextID();
@@ -786,7 +758,7 @@
                         if ((header.BlockProperties & BlockProperties.IsFirstBlockInRecord) != 0)
                         {
                             var location = new BlockStorageLocation() { Address = blockAddress };
-                            T record = this.ReadRecord(location).Result;
+                            T record = this.ReadRecord(location);
                             if (this.NextIndex < record.Id)
                             {
                                 this.NextIndex = record.Id;

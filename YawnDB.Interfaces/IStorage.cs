@@ -13,18 +13,16 @@ namespace YawnDB.Interfaces
         StorageState State { get; }
         IEnumerable<TE> GetRecords<TE>(IEnumerable<IStorageLocation> recordsToPull) where TE : YawnSchema;
         IEnumerable<TE> GetAllRecords<TE>() where TE : YawnSchema;
-        Task<IEnumerable<TE>> GetAllRecordsAsync<TE>() where TE : YawnSchema;
-        Task<IEnumerable<TE>> GetRecordsAsync<TE>(IEnumerable<IStorageLocation> recordsToPull) where TE : YawnSchema;
         IEnumerable<IStorageLocation> GetStorageLocations(IIdexArguments queryParams);
         void Open();
         void Close();
-        Task<IStorageLocation> InsertRecord(YawnSchema instanceToInsert);
-        Task<IStorageLocation> InsertRecord(YawnSchema instanceToInsert, ITransaction transaction);
-        Task<IStorageLocation> SaveRecord(YawnSchema instanceToSave);
-        Task<IStorageLocation> SaveRecord(YawnSchema instanceToSave, ITransaction transaction);
+        IStorageLocation InsertRecord(YawnSchema instanceToInsert);
+        IStorageLocation InsertRecord(YawnSchema instanceToInsert, ITransaction transaction);
+        IStorageLocation SaveRecord(YawnSchema instanceToSave);
+        IStorageLocation SaveRecord(YawnSchema instanceToSave, ITransaction transaction);
         bool DeleteRecord(YawnSchema instance);
         bool DeleteRecord(YawnSchema instance, ITransaction transaction);
-        Task<YawnSchema> CreateRecord();
+        YawnSchema CreateRecord();
         long GetNextID();
         void ReIndexStorage(IList<IIndex> needReindexing);
         bool CommitTransactionItem(ITransactionItem transactionItem);
