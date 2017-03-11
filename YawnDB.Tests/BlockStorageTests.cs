@@ -94,8 +94,7 @@
             }
             catch (Exception e)
             {
-                Assert.AreEqual(typeof(AggregateException), e.GetType()); // <== Because of async
-                Assert.AreEqual(typeof(DatabaseIsClosedException), e.InnerException.GetType()); // Actual exception from storage
+                Assert.AreEqual(typeof(DatabaseIsClosedException), e.GetType()); // Actual exception from storage
             }
         }
 
@@ -125,8 +124,7 @@
             }
             catch (Exception e)
             {
-                Assert.AreEqual(typeof(AggregateException), e.GetType()); // <== Because of async
-                Assert.AreEqual(typeof(DatabaseIsClosedException), e.InnerException.GetType()); // Actual exception from storage
+                Assert.AreEqual(typeof(DatabaseIsClosedException), e.GetType()); // Actual exception from storage
             }
         }
 

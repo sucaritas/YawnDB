@@ -74,6 +74,7 @@
     <Compile Include="Exceptions\DatabaseTransactionsAreDisabled.cs" />
     <Compile Include="PerformanceCounters\StorageCounters.cs" />
     <BondCodegen Include="Storage\BlockStorage\BlockStorageLocation.bond" />
+    <Compile Include="PerformanceCounters\YawnCounters.cs" />
     <Compile Include="QueryProcessor.cs" />
     <Compile Include="Storage\BlockStorage\BlockStorageUnlocker.cs" />
     <Compile Include="Storage\StorageLocker.cs" />

@@ -19,6 +19,7 @@
     using YawnDB.Interfaces;
     using YawnDB.Utils;
     using YawnDB.Exceptions;
+    using YawnDB.Transactions;
 
     public class MemStorage<T> : IStorage where T : YawnSchema
     {
@@ -70,7 +71,6 @@
             }
 
             this.PerfCounters = new StorageCounters(this.FullStorageName);
-            this.PerfCounters.InitializeCounter.Increment();
         }
 
         public IStorageLocation InsertRecord(YawnSchema instanceToInsert)
@@ -85,12 +85,7 @@
 
         public IStorageLocation SaveRecord(YawnSchema inputInstance)
         {
-            using (var transaction = this.YawnSite.CreateTransaction())
-            {
-                var result = SaveRecord(inputInstance, transaction);
-                transaction.Commit();
-                return result;
-            }
+            return SaveRecord(inputInstance, null);
         }
 
         public IStorageLocation SaveRecord(YawnSchema instanceToSave, ITransaction transaction)
@@ -100,7 +95,31 @@
                 throw new DatabaseIsClosedException($"An attemp was made to write to database '{this.YawnSite.DatabaseName}' which is closed");
             }
 
-            var instance = Cloner.Clone<T>(instanceToSave as T);
+            T instance = Cloner.Clone<T>(instanceToSave as T);
+            T existingInstance;
+            ItemsInMemmory.TryGetValue(instance.Id, out existingInstance);
+
+            if (transaction != null)
+            {
+                var transactionItem = new TransactionItem();
+                transactionItem.ItemAction = Transactions.TransactionAction.Update;
+                transactionItem.SchemaType = SchemaType.AssemblyQualifiedName;
+                transactionItem.OldInstance = existingInstance ?? (T)Activator.CreateInstance(SchemaType);
+                transactionItem.NewInstance = instance ?? (T)Activator.CreateInstance(SchemaType);
+                transactionItem.Storage = this;
+                transaction.AddTransactionItem(transactionItem);
+
+                var transactionLocation = this.YawnSite.SaveRecord(transaction as YawnSchema);
+                if (transactionLocation == null)
+                {
+                    return null;
+                }
+
+                return new MemStorageLocation() { Id = instanceToSave.Id };
+            }
+
+            StorageEventSource.Log.RecordWriteStart(this.FullStorageName, instance.Id);
+            this.PerfCounters.RecordWriteStartCounter.Increment();
             if (instance == null)
             {
                 return null;
@@ -108,25 +127,25 @@
 
             ItemsInMemmory[instance.Id] = instance;
 
-            this.PerfCounters.IndexingCounter.Increment();
+            StorageEventSource.Log.IndexingStart(this.FullStorageName, instance.Id);
+            this.PerfCounters.IndexingStartCounter.Increment();
             foreach (var index in this.Indicies.Values)
             {
-                index.SetIndex(instance, new MemStorageLocation() { Id = instance.Id });
+                index.UpdateIndex(existingInstance, instance, new MemStorageLocation() { Id = instance.Id });
             }
 
-            this.PerfCounters.RecordWriteCounter.Increment();
+            StorageEventSource.Log.IndexingFinish(this.FullStorageName, instance.Id);
+            this.PerfCounters.IndexingFinishedCounter.Increment();
+
+            StorageEventSource.Log.RecordWriteFinish(this.FullStorageName, instance.Id);
+            this.PerfCounters.RecordWriteFinishedCounter.Increment();
 
             return new MemStorageLocation() { Id = instance.Id };
         }
 
         public bool DeleteRecord(YawnSchema instance)
         {
-            using (var transaction = this.YawnSite.CreateTransaction())
-            {
-                var result = DeleteRecord(instance, transaction);
-                transaction.Commit();
-                return result;
-            }
+            return DeleteRecord(instance, null);
         }
 
         public bool DeleteRecord(YawnSchema instance, ITransaction transaction)
@@ -136,12 +155,28 @@
                 throw new DatabaseIsClosedException($"An attemp was made to read from database '{this.YawnSite.DatabaseName}' which is closed");
             }
 
+            StorageEventSource.Log.RecordDeleteStart(this.FullStorageName, instance.Id);
+            this.PerfCounters.RecordDeleteStartCounter.Increment();
+
+            if (transaction != null)
+            {
+                var transactionItem = new TransactionItem();
+                transactionItem.ItemAction = Transactions.TransactionAction.Delete;
+                transactionItem.SchemaType = SchemaType.AssemblyQualifiedName;
+                transactionItem.OldInstance = instance ?? (T)Activator.CreateInstance(SchemaType);
+                transactionItem.NewInstance = instance ?? (T)Activator.CreateInstance(SchemaType);
+                transactionItem.Storage = this;
+                transaction.AddTransactionItem(transactionItem);
+                return this.YawnSite.SaveRecord(transaction as YawnSchema) == null ? false : true;
+            }
+
             foreach (var index in this.Indicies.Values)
             {
                 index.DeleteIndex(instance);
             }
 
-            this.PerfCounters.RecordDeleteCounter.Increment();
+            StorageEventSource.Log.RecordDeleteFinish(this.FullStorageName, instance.Id);
+            this.PerfCounters.RecordDeleteFinishedCounter.Increment();
             return ItemsInMemmory.Remove(instance.Id);
         }
 
@@ -164,7 +199,7 @@
 
         public IEnumerable<TE> GetAllRecords<TE>() where TE : YawnSchema
         {
-            return this.ItemsInMemmory.Values.Select(x=> PropagateSite(x as TE) as TE);
+            return this.ItemsInMemmory.Values.Select(x => PropagateSite(x as TE) as TE);
         }
 
         public YawnSchema CreateRecord()
@@ -193,11 +228,13 @@
 
             foreach (var record in this.ItemsInMemmory.Values)
             {
-                this.PerfCounters.IndexingCounter.Increment();
+                this.PerfCounters.IndexingStartCounter.Increment();
                 foreach (var index in needReindexing)
                 {
                     index.SetIndex(record, new MemStorageLocation() { Id = record.Id });
                 }
+
+                this.PerfCounters.IndexingFinishedCounter.Increment();
             }
         }
 
@@ -208,7 +245,7 @@
 
         public void Open()
         {
-
+            this.PerfCounters.InitializeCounter.Increment();
         }
 
         private YawnSchema PropagateSite(YawnSchema instance)
@@ -234,12 +271,34 @@
 
         public bool CommitTransactionItem(ITransactionItem transactionItem)
         {
-            return true;
+            var item = transactionItem as TransactionItem;
+            switch (item.ItemAction)
+            {
+                case Transactions.TransactionAction.Delete:
+                    return this.DeleteRecord(item.OldInstance);
+
+                case Transactions.TransactionAction.Update:
+                case Transactions.TransactionAction.Insert:
+                    return this.SaveRecord(item.NewInstance) == null ? false : true;
+
+                default:
+                    return false;
+            }
         }
 
         public bool RollbackTransactionItem(ITransactionItem transactionItem)
         {
-            return true;
+            var item = transactionItem as TransactionItem;
+            switch (item.ItemAction)
+            {
+                case Transactions.TransactionAction.Update:
+                case Transactions.TransactionAction.Insert:
+                    return this.SaveRecord(item.OldInstance) == null ? false : true;
+
+                case Transactions.TransactionAction.Delete:
+                default:
+                    return false;
+            }
         }
     }
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously

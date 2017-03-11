@@ -9,26 +9,38 @@
 
     public class StorageCounters
     {
-        public int Scale = 1000000;
         public const string CounterCategoryName = "YawnDB Storage Counters";
 
         public const string InitializeCounterName = "# Times Storage has initialized";
-        public const string RecordWriteCounterName = "# Record Writes";
-        public const string RecordReadCounterName = "# Record Reads";
+
+        public const string RecordWriteStartCounterName = "# Record Write Start";
+        public const string RecordWriteFinishedCounterName = "# Record Writes Finished";
+
+        public const string RecordReadStartCounterName = "# Record Read Start";
+        public const string RecordReadFinishedCounterName = "# Record Read Finished";
+
         public const string RecordReadFromCacheCounterName = "# Record Reads From Cache";
-        public const string RecordDeleteCounterName = "# Record deletes";
-        public const string IndexingCounterName = "# Record indexing";
+
+        public const string RecordDeleteStartCounterName = "# Record Delete Start";
+        public const string RecordDeleteFinishedCounterName = "# Record Delete Finished";
+
+        public const string IndexingStartCounterName = "# Record Indexing Start";
+        public const string IndexingFinishedCounterName = "# Record Indexing Finished";
+
         public const string ResizeCounterName = "# Storage resizes";
         public const string WriteContentionCounterName = "# Write contentions";
 
         public PerformanceCounter InitializeCounter { get; private set;}
-        public PerformanceCounter RecordWriteCounter { get; private set; }
-        public PerformanceCounter RecordReadCounter { get; private set; }
+        public PerformanceCounter RecordWriteStartCounter { get; private set; }
+        public PerformanceCounter RecordWriteFinishedCounter { get; private set; }
+        public PerformanceCounter RecordReadStartCounter { get; private set; }
+        public PerformanceCounter RecordReadFinishedCounter { get; private set; }
         public PerformanceCounter RecordReadFromCacheCounter { get; private set; }
-        public PerformanceCounter RecordDeleteCounter { get; private set; }
-        public PerformanceCounter IndexingCounter { get; private set; }
+        public PerformanceCounter RecordDeleteStartCounter { get; private set; }
+        public PerformanceCounter RecordDeleteFinishedCounter { get; private set; }
+        public PerformanceCounter IndexingStartCounter { get; private set; }
+        public PerformanceCounter IndexingFinishedCounter { get; private set; }
         public PerformanceCounter ResizeCounter { get; private set; }
-
         public PerformanceCounter WriteContentionCounter { get; private set; }
 
         public StorageCounters(string InstanceName)
@@ -44,20 +56,28 @@
             this.InitializeCounter = new PerformanceCounter(CounterCategoryName, InitializeCounterName, InstanceName, false);
             this.InitializeCounter.RawValue = 0;
 
-            this.RecordWriteCounter = new PerformanceCounter(CounterCategoryName, RecordWriteCounterName, InstanceName, false);
-            this.RecordWriteCounter.RawValue = 0;
+            this.RecordWriteStartCounter = new PerformanceCounter(CounterCategoryName, RecordWriteStartCounterName, InstanceName, false);
+            this.RecordWriteStartCounter.RawValue = 0;
+            this.RecordWriteFinishedCounter = new PerformanceCounter(CounterCategoryName, RecordWriteFinishedCounterName, InstanceName, false);
+            this.RecordWriteFinishedCounter.RawValue = 0;
 
-            this.RecordReadCounter = new PerformanceCounter(CounterCategoryName, RecordReadCounterName, InstanceName, false);
-            this.RecordReadCounter.RawValue = 0;
+            this.RecordReadStartCounter = new PerformanceCounter(CounterCategoryName, RecordReadStartCounterName, InstanceName, false);
+            this.RecordReadStartCounter.RawValue = 0;
+            this.RecordReadFinishedCounter = new PerformanceCounter(CounterCategoryName, RecordReadFinishedCounterName, InstanceName, false);
+            this.RecordReadFinishedCounter.RawValue = 0;
 
             this.RecordReadFromCacheCounter = new PerformanceCounter(CounterCategoryName, RecordReadFromCacheCounterName, InstanceName, false);
             this.RecordReadFromCacheCounter.RawValue = 0;
 
-            this.RecordDeleteCounter = new PerformanceCounter(CounterCategoryName, RecordDeleteCounterName, InstanceName, false);
-            this.RecordDeleteCounter.RawValue = 0;
+            this.RecordDeleteStartCounter = new PerformanceCounter(CounterCategoryName, RecordDeleteStartCounterName, InstanceName, false);
+            this.RecordDeleteStartCounter.RawValue = 0;
+            this.RecordDeleteFinishedCounter = new PerformanceCounter(CounterCategoryName, RecordDeleteFinishedCounterName, InstanceName, false);
+            this.RecordDeleteFinishedCounter.RawValue = 0;
 
-            this.IndexingCounter = new PerformanceCounter(CounterCategoryName, IndexingCounterName, InstanceName, false);
-            this.IndexingCounter.RawValue = 0; 
+            this.IndexingStartCounter = new PerformanceCounter(CounterCategoryName, IndexingStartCounterName, InstanceName, false);
+            this.IndexingStartCounter.RawValue = 0;
+            this.IndexingFinishedCounter = new PerformanceCounter(CounterCategoryName, IndexingFinishedCounterName, InstanceName, false);
+            this.IndexingFinishedCounter.RawValue = 0;
 
             this.ResizeCounter = new PerformanceCounter(CounterCategoryName, ResizeCounterName, InstanceName, false);
             this.ResizeCounter.RawValue = 0;
@@ -77,30 +97,51 @@
                 initializeCount.CounterName = InitializeCounterName;
                 counterDataCollection.Add(initializeCount);
 
-                CounterCreationData recordWriteCount = new CounterCreationData();
-                recordWriteCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
-                recordWriteCount.CounterName = RecordWriteCounterName;
-                counterDataCollection.Add(recordWriteCount);
+                CounterCreationData recordWriteStartCount = new CounterCreationData();
+                recordWriteStartCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
+                recordWriteStartCount.CounterName = RecordWriteStartCounterName;
+                counterDataCollection.Add(recordWriteStartCount);
 
-                CounterCreationData recordReadCount = new CounterCreationData();
-                recordReadCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
-                recordReadCount.CounterName = RecordReadCounterName;
-                counterDataCollection.Add(recordReadCount);
+                CounterCreationData recordWriteFinishedCount = new CounterCreationData();
+                recordWriteFinishedCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
+                recordWriteFinishedCount.CounterName = RecordWriteFinishedCounterName;
+                counterDataCollection.Add(recordWriteFinishedCount);
+
+
+                CounterCreationData recordReadStartCount = new CounterCreationData();
+                recordReadStartCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
+                recordReadStartCount.CounterName = RecordReadStartCounterName;
+                counterDataCollection.Add(recordReadStartCount);
+
+                CounterCreationData recordReadFinishedCount = new CounterCreationData();
+                recordReadFinishedCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
+                recordReadFinishedCount.CounterName = RecordReadFinishedCounterName;
+                counterDataCollection.Add(recordReadFinishedCount);
 
                 CounterCreationData recordReadCacheCount = new CounterCreationData();
                 recordReadCacheCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
                 recordReadCacheCount.CounterName = RecordReadFromCacheCounterName;
                 counterDataCollection.Add(recordReadCacheCount);
 
-                CounterCreationData recordDeleteCount = new CounterCreationData();
-                recordDeleteCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
-                recordDeleteCount.CounterName = RecordDeleteCounterName;
-                counterDataCollection.Add(recordDeleteCount);
+                CounterCreationData recordDeleteStartCount = new CounterCreationData();
+                recordDeleteStartCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
+                recordDeleteStartCount.CounterName = RecordDeleteStartCounterName;
+                counterDataCollection.Add(recordDeleteStartCount);
 
-                CounterCreationData IndexingCount = new CounterCreationData();
-                IndexingCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
-                IndexingCount.CounterName = IndexingCounterName;
-                counterDataCollection.Add(IndexingCount);
+                CounterCreationData recordDeleteFinishedCount = new CounterCreationData();
+                recordDeleteFinishedCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
+                recordDeleteFinishedCount.CounterName = RecordDeleteFinishedCounterName;
+                counterDataCollection.Add(recordDeleteFinishedCount);
+
+                CounterCreationData indexingStartCount = new CounterCreationData();
+                indexingStartCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
+                indexingStartCount.CounterName = IndexingStartCounterName;
+                counterDataCollection.Add(indexingStartCount);
+
+                CounterCreationData indexingFinishedCount = new CounterCreationData();
+                indexingFinishedCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
+                indexingFinishedCount.CounterName = IndexingFinishedCounterName;
+                counterDataCollection.Add(indexingFinishedCount);
 
                 CounterCreationData ResizeCount = new CounterCreationData();
                 ResizeCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;

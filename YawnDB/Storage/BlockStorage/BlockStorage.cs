@@ -168,7 +168,6 @@
             this.Indicies = Utilities.GetIndeciesFromSchema(this.SchemaType, typeof(BlockStorageLocation));
             List<IIndex> needReindexing = new List<IIndex>();
 
-            StorageEventSource.Log.IndexingStart(this.FullStorageName);
             foreach (var index in this.Indicies)
             {
                 if (!index.Value.Initialize(this.PathToSchemaFolder, true))
@@ -185,11 +184,10 @@
             {
                 if (typeof(IReference).IsAssignableFrom(prop.PropertyType))
                 {
-                    ReferencingProperties.Add(prop);
+                    this.ReferencingProperties.Add(prop);
                 }
             }
-
-            StorageEventSource.Log.IndexingFinish(this.FullStorageName);
+            
             StorageEventSource.Log.InitializeFinish(this.FullStorageName);
             this.PerfCounters.InitializeCounter.Increment();
         }
@@ -216,6 +214,8 @@
                 throw new DatabaseTransactionsAreDisabled();
             }
 
+            StorageEventSource.Log.RecordWriteStart(this.FullStorageName, inputInstance.Id);
+            this.PerfCounters.RecordWriteStartCounter.Increment();
             var isTransaction = transaction != null;
             var instance = this.Cloner.Clone<T>(inputInstance as T);
             var output = new OutputBuffer();
@@ -300,7 +300,6 @@
                     return null;
                 }
 
-                //this.PerfCounters.RecordWriteCounter.Increment();
                 return location as StorageLocation;
             }
             else
@@ -322,7 +321,8 @@
                     }
                 }
 
-                this.PerfCounters.RecordWriteCounter.Increment();
+                StorageEventSource.Log.RecordWriteFinish(this.FullStorageName, instance.Id);
+                this.PerfCounters.RecordWriteFinishedCounter.Increment();
                 return location as StorageLocation;
             }
         }
@@ -384,7 +384,7 @@
             }
 
             UpdateIndeciesForInstance(item.OldInstance, item.NewInstance, location as StorageLocation);
-            this.PerfCounters.RecordWriteCounter.Increment();
+            StorageEventSource.Log.RecordWriteFinish(this.FullStorageName, item.NewInstance.Id);
             return true;
         }
 
@@ -526,17 +526,20 @@
                 return;
             }
 
-            // Allreaders must be closed, the Memory Mapped file must be closed
-            // therfore we must be mutualy exclusive form reads
-            lock (this.ResizeLock)
+            // Allreaders must be closed in order to close Memory Mapped file
+            // Therefore we must be mutualy exclusive form all reads and writes
+            lock (this.ResizeLock) // <--this lock says no new friends (no new readers/writers)
             {
                 this.RecordLocker.WaitForAllReaders();
+
+                // TODO: GARBAGE COLLECT FREE BLOCKS HERE
+
                 using (var unlocker = new BlockStorageUnlocker<T>(this))
                 {
                     var firstAddressInNewArea = this.Capacity;
                     this.Capacity += this.NumberOfBufferBlocks * this.BlockSize;
 
-                    // Close the mapped file an reopen with add capacity
+                    // Close the mapped file and reopen with added capacity
                     this.MappedFile.Dispose();
                     this.MappedFile = MemoryMappedFile.CreateFromFile(this.FilePath, FileMode.OpenOrCreate, this.TypeNameNormilized, this.Capacity, MemoryMappedFileAccess.ReadWrite);
 
@@ -549,20 +552,28 @@
 
         private void UpdateIndeciesForInstance(YawnSchema oldRecord, YawnSchema newRecord, StorageLocation newLocation)
         {
-            this.PerfCounters.IndexingCounter.Increment();
+            StorageEventSource.Log.IndexingStart(this.FullStorageName, newRecord.Id);
+            this.PerfCounters.IndexingStartCounter.Increment();
             foreach (var index in this.Indicies)
             {
                 index.Value.UpdateIndex(oldRecord, newRecord, newLocation);
             }
+
+            StorageEventSource.Log.IndexingFinish(this.FullStorageName, newRecord.Id);
+            this.PerfCounters.IndexingFinishedCounter.Increment();
         }
 
         private void DeleteIndeciesForInstance(YawnSchema instance)
         {
-            this.PerfCounters.IndexingCounter.Increment();
+            StorageEventSource.Log.IndexingStart(this.FullStorageName + ": Delete", instance.Id);
+            this.PerfCounters.IndexingStartCounter.Increment();
             foreach (var index in this.Indicies)
             {
                 index.Value.DeleteIndex(instance);
             }
+
+            StorageEventSource.Log.IndexingFinish(this.FullStorageName + ": Delete", instance.Id);
+            this.PerfCounters.IndexingFinishedCounter.Increment();
         }
 
         public T ReadRecord(IStorageLocation fromLocation)
@@ -583,9 +594,13 @@
             var cacheInstance = Cache.Get(location.ToString());
             if (cacheInstance != null)
             {
+                StorageEventSource.Log.RecordReadFromCahe(this.FullStorageName, (cacheInstance as T).Id);
                 this.PerfCounters.RecordReadFromCacheCounter.Increment();
                 return Cloner.Clone<T>(cacheInstance as T);
             }
+
+            StorageEventSource.Log.RecordReadStart(this.FullStorageName, blockStorageLocation.Address);
+            this.PerfCounters.RecordReadStartCounter.Increment();
 
             bool lastBlock = false;
             byte[] buffer = null;
@@ -616,7 +631,8 @@
             var reader = new CompactBinaryReader<InputBuffer>(input);
             T instance = SchemaDeserializer.Deserialize<T>(reader);
             Cache.Set(location.ToString(), instance, new CacheItemPolicy());
-            this.PerfCounters.RecordReadCounter.Increment();
+            StorageEventSource.Log.RecordSerializeFinish(this.FullStorageName, blockStorageLocation.Address);
+            this.PerfCounters.RecordWriteFinishedCounter.Increment();
             return PropagateSite(Cloner.Clone<T>(instance));
         }
 
@@ -691,7 +707,7 @@
             transactionItem.SchemaType = SchemaType.AssemblyQualifiedName;
             transactionItem.OriginalAddresses = new LinkedList<long>(existingAddresses);
             transactionItem.OldInstance = instance ?? (T)Activator.CreateInstance(SchemaType);
-            transactionItem.NewInstance =  (T)Activator.CreateInstance(SchemaType);
+            transactionItem.NewInstance = instance ?? (T)Activator.CreateInstance(SchemaType);
             transactionItem.ItemAction = Transactions.TransactionAction.Delete;
             transactionItem.Storage = this;
             transaction.AddTransactionItem(transactionItem);
@@ -701,8 +717,9 @@
 
         public bool DeleteRecord(YawnSchema instance)
         {
+            StorageEventSource.Log.RecordDeleteStart(this.FullStorageName, instance.Id);
+            this.PerfCounters.RecordDeleteStartCounter.Increment();
             long firstLocation = this.GetExistingAddress(instance);
-
             if(firstLocation == -1 )
             {
                 return true;
@@ -735,6 +752,8 @@
 
             this.DeleteIndeciesForInstance(instance);
             this.Cache.Remove(firstLocation.ToString());
+            StorageEventSource.Log.RecordDeleteFinish(this.FullStorageName, instance.Id);
+            this.PerfCounters.RecordDeleteFinishedCounter.Increment();
             return true;
         }
 
