@@ -1,4 +1,8 @@
-﻿namespace YawnDB.Interfaces
+﻿// <copyright file="ITransaction.cs" company="YawnDB">
+//  By Julio Cesar Saenz
+// </copyright>
+
+namespace YawnDB.Interfaces
 {
     using System;
     using System.Collections.Generic;

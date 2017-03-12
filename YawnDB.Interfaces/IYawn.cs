@@ -1,8 +1,12 @@
-﻿namespace YawnDB.Interfaces
+﻿// <copyright file="IYawn.cs" company="YawnDB">
+//  By Julio Cesar Saenz
+// </copyright>
+
+namespace YawnDB.Interfaces
 {
     using System;
-    using System.Collections.Generic;
     using System.Collections.Concurrent;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;

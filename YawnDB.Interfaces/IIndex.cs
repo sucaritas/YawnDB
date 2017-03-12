@@ -1,13 +1,17 @@
-﻿namespace YawnDB.Interfaces
+﻿// <copyright file="IIndex.cs" company="YawnDB">
+//  By Julio Cesar Saenz
+// </copyright>
+
+namespace YawnDB.Interfaces
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reflection;
     using System.Text;
     using System.Threading.Tasks;
-    using System.Reflection;
     using Bond;
-    
+
     public interface IIndex
     {
         string Name { get; set; }
