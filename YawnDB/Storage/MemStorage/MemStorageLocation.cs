@@ -1,10 +1,13 @@
-﻿namespace YawnDB.Storage.MemStorage
-{
+﻿// <copyright file="MemStorageLocation.cs" company="YawnDB">
+//  By Julio Cesar Saenz
+// </copyright>
 
+namespace YawnDB.Storage.MemStorage
+{
     using YawnDB.Interfaces;
 
     public class MemStorageLocation : IStorageLocation
     {
-        public long Id;
+        public long Id { get; set; }
     }
 }

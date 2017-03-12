@@ -1,30 +1,37 @@
-﻿namespace YawnDB.Index.HashKey
+﻿// <copyright file="HashKeyIndex.cs" company="YawnDB">
+//  By Julio Cesar Saenz
+// </copyright>
+
+namespace YawnDB.Index.HashKey
 {
     using System;
     using System.Collections;
-    using System.Collections.Generic;
     using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
+    using System.Reflection;
     using System.Text;
     using System.Threading.Tasks;
-    using System.Reflection;
-    using System.IO;
-
     using Bond;
-    using Bond.Protocols;
     using Bond.IO.Unsafe;
-
+    using Bond.Protocols;
     using YawnDB.Interfaces;
     using YawnDB.Storage;
 
     public partial class HashKeyIndex : IIndex
     {
         public string Name { get; set; }
+
         public Type StorageLocationType { get; set; }
+
         public IList<IndexParameter> IndexParameters { get; } = new List<IndexParameter>();
-        public ConcurrentDictionary<string, IStorageLocation> IndexData = new ConcurrentDictionary<string, IStorageLocation>();
-        private string FolderPath;
-        private string FilePath;
+
+        private ConcurrentDictionary<string, IStorageLocation> indexData = new ConcurrentDictionary<string, IStorageLocation>();
+
+        private string folderPath;
+
+        private string filePath;
 
         public bool SetIndex(YawnSchema objectToIndex, IStorageLocation dataToIndex)
         {
@@ -36,7 +43,7 @@
             var key = this.Getkey(objectToIndex);
             if (key != null)
             {
-                this.IndexData[key] = dataToIndex;
+                this.indexData[key] = dataToIndex;
                 return true;
             }
 
@@ -45,7 +52,6 @@
 
         public bool DeleteIndex(YawnSchema objectToIndex)
         {
-            
             if (objectToIndex == null)
             {
                 return true;
@@ -55,9 +61,9 @@
             if (key != null)
             {
                 IStorageLocation val;
-                return this.IndexData.TryRemove(key, out val);
+                return this.indexData.TryRemove(key, out val);
             }
-            
+
             return false;
         }
 
@@ -66,7 +72,7 @@
             IStorageLocation result;
             foreach (var key in this.GetKeyFromIndexArguments(inputParams))
             {
-                if (IndexData.TryGetValue(key, out result))
+                if (this.indexData.TryGetValue(key, out result))
                 {
                     yield return result;
                 }
@@ -92,14 +98,14 @@
 
         public IStorageLocation GetLocationForInstance(YawnSchema instance)
         {
-            var key = Getkey(instance);
+            var key = this.Getkey(instance);
             if (string.IsNullOrEmpty(key))
             {
                 return null;
             }
 
             IStorageLocation value;
-            this.IndexData.TryGetValue(key, out value);
+            this.indexData.TryGetValue(key, out value);
             return value;
         }
 
@@ -111,7 +117,7 @@
                 return Enumerable.Empty<string>();
             }
 
-            List<string> keys = new List<string>(Enumerable.Range(0, this.GetMaxKeyCount(arguments)).Select(x=>string.Empty));
+            List<string> keys = new List<string>(Enumerable.Range(0, this.GetMaxKeyCount(arguments)).Select(x => string.Empty));
 
             foreach (var indexParam in this.IndexParameters)
             {
@@ -140,10 +146,10 @@
         private int GetMaxKeyCount(IIdexArguments arguments)
         {
             int max = 1;
-            foreach(var arg in arguments.Value1)
+            foreach (var arg in arguments.Value1)
             {
                 int cnt = 0;
-                var ien = (arg.Value as IEnumerable);
+                var ien = arg.Value as IEnumerable;
                 foreach (var p in ien)
                 {
                     cnt++;
@@ -154,12 +160,13 @@
                     max = cnt;
                 }
             }
+
             return max;
         }
 
         public IEnumerable<IStorageLocation> EnumerateAllLocations()
         {
-            var enumerator = this.IndexData.Values.GetEnumerator();
+            var enumerator = this.indexData.Values.GetEnumerator();
             while (enumerator.MoveNext())
             {
                 if (enumerator.Current == null)
@@ -173,11 +180,11 @@
 
         public bool Initialize(string folderPath, bool shouldLoadFromDisk)
         {
-            this.FolderPath = folderPath;
-            this.FilePath = Path.Combine(this.FolderPath, this.Name + ".bin");
+            this.folderPath = folderPath;
+            this.filePath = Path.Combine(this.folderPath, this.Name + ".bin");
             if (shouldLoadFromDisk)
             {
-                return LoadDataFromPath(this.FilePath);
+                return this.LoadDataFromPath(this.filePath);
             }
 
             return true;
@@ -187,7 +194,7 @@
         {
             if (shouldSaveToDisk)
             {
-                SaveDataToPath(this.FilePath);
+                this.SaveDataToPath(this.filePath);
             }
         }
 
@@ -196,7 +203,7 @@
             HashKeyStorageFormat storageFormat = new HashKeyStorageFormat();
             Serializer<CompactBinaryWriter<OutputBuffer>> schemaDeserializer = new Serializer<CompactBinaryWriter<OutputBuffer>>(this.StorageLocationType);
 
-            foreach (var kv in this.IndexData)
+            foreach (var kv in this.indexData)
             {
                 var output = new OutputBuffer();
                 var writer = new CompactBinaryWriter<OutputBuffer>(output);
@@ -229,7 +236,7 @@
                 return false;
             }
 
-            var diskInput = new InputStream(new FileStream(this.FilePath, FileMode.Open));
+            var diskInput = new InputStream(new FileStream(this.filePath, FileMode.Open));
             var diskReader = new CompactBinaryReader<InputStream>(diskInput);
             Deserializer<CompactBinaryReader<InputStream>> deserializer = new Deserializer<CompactBinaryReader<InputStream>>(this.StorageLocationType);
 
@@ -244,7 +251,7 @@
                 IStorageLocation location = schemaDeserializer.Deserialize(reader) as IStorageLocation;
                 if (location != null)
                 {
-                    this.IndexData.TryAdd(kv.Key, location);
+                    this.indexData.TryAdd(kv.Key, location);
                 }
                 else
                 {
@@ -257,8 +264,8 @@
 
         public bool UpdateIndex(YawnSchema oldRecord, YawnSchema newRecord, IStorageLocation storageLocation)
         {
-            DeleteIndex(oldRecord);
-            SetIndex(newRecord, storageLocation);
+            this.DeleteIndex(oldRecord);
+            this.SetIndex(newRecord, storageLocation);
             return true;
         }
     }

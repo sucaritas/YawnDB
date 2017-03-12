@@ -1,38 +1,41 @@
-﻿namespace YawnDB.Storage.BlockStorage
+﻿// <copyright file="FreeBlocks.cs" company="YawnDB">
+//  By Julio Cesar Saenz
+// </copyright>
+
+namespace YawnDB.Storage.BlockStorage
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
+    using System.IO.MemoryMappedFiles;
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
-    using System.IO;
-    using System.IO.MemoryMappedFiles;
-    using YawnDB.Storage;
     using Bond;
-    using Bond.Protocols;
     using Bond.IO.Unsafe;
+    using Bond.Protocols;
+    using YawnDB.Storage;
 
-    partial class FreeBlocks 
+    public partial class FreeBlocks
     {
-
-        private string FilePath;
+        private string filePath;
 
         private object accessLock = new object();
 
         public FreeBlocks(string filePath)
         {
-            this.FilePath = filePath;
+            this.filePath = filePath;
             this.Blocks = new SortedSet<long>();
 
             if (File.Exists(filePath))
             {
-                ReadFromFile();
+                this.ReadFromFile();
             }
         }
 
         public void ScanFreeBlocksFromMap(MemoryMappedViewAccessor mapAccessor, long capacity, int blockSize)
         {
-            lock (accessLock)
+            lock (this.accessLock)
             {
                 this.Blocks.Clear();
                 int blocksInMap = (int)(capacity / blockSize);
@@ -41,7 +44,7 @@
                     BlockHeader header;
                     long blockAddress = i * blockSize;
                     mapAccessor.Read<BlockHeader>(blockAddress, out header);
-                    if((header.BlockProperties & BlockProperties.InUse) == 0)
+                    if ((header.BlockProperties & BlockProperties.InUse) == 0)
                     {
                         this.Blocks.Add(blockAddress);
                     }
@@ -51,9 +54,9 @@
 
         public void AddFreeBlockRange(long firstAddress, int nuberOfBlocks, int blockSize)
         {
-            lock (accessLock)
+            lock (this.accessLock)
             {
-                var end = firstAddress + nuberOfBlocks * blockSize;
+                var end = firstAddress + (nuberOfBlocks * blockSize);
                 for (long i = firstAddress; i < end; i += blockSize)
                 {
                     if (!this.Blocks.Contains(i))
@@ -66,7 +69,7 @@
 
         public void AddFreeBlock(long blockAddress)
         {
-            lock(accessLock)
+            lock (this.accessLock)
             {
                 if (!this.Blocks.Contains(blockAddress))
                 {
@@ -77,9 +80,9 @@
 
         public bool PopFreeBlock(out long blockAddress)
         {
-            lock (accessLock)
+            lock (this.accessLock)
             {
-                if(this.Blocks.Any())
+                if (this.Blocks.Any())
                 {
                     blockAddress = this.Blocks.First();
                     this.Blocks.Remove(blockAddress);
@@ -95,18 +98,17 @@
         {
             var output = new OutputBuffer();
             var writer = new CompactBinaryWriter<OutputBuffer>(output);
-            Serializer<CompactBinaryWriter<OutputBuffer>> SchemaSerializer = new Serializer<CompactBinaryWriter<OutputBuffer>>(typeof(FreeBlocks));
-            SchemaSerializer.Serialize(this, writer);
-            File.WriteAllBytes(FilePath, output.Data.Array);
+            Serializer<CompactBinaryWriter<OutputBuffer>> schemaSerializer = new Serializer<CompactBinaryWriter<OutputBuffer>>(typeof(FreeBlocks));
+            schemaSerializer.Serialize(this, writer);
+            File.WriteAllBytes(this.filePath, output.Data.Array);
         }
 
         public void ReadFromFile()
         {
-            var input = new InputBuffer(File.ReadAllBytes(this.FilePath));
+            var input = new InputBuffer(File.ReadAllBytes(this.filePath));
             var reader = new CompactBinaryReader<InputBuffer>(input);
-            Deserializer<CompactBinaryReader<InputBuffer>> SchemaDeserializer = new Deserializer<CompactBinaryReader<InputBuffer>>(typeof(FreeBlocks));
-            this.Blocks = SchemaDeserializer.Deserialize<FreeBlocks>(reader).Blocks;
+            Deserializer<CompactBinaryReader<InputBuffer>> schemaDeserializer = new Deserializer<CompactBinaryReader<InputBuffer>>(typeof(FreeBlocks));
+            this.Blocks = schemaDeserializer.Deserialize<FreeBlocks>(reader).Blocks;
         }
-
     }
 }

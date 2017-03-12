@@ -1,10 +1,14 @@
-﻿namespace YawnDB.Transactions
+﻿// <copyright file="TransactionItem.cs" company="YawnDB">
+//  By Julio Cesar Saenz
+// </copyright>
+
+namespace YawnDB.Transactions
 {
     using System;
     using System.Collections.Generic;
     using YawnDB.Interfaces;
 
-    public partial class TransactionItem: ITransactionItem
+    public partial class TransactionItem : ITransactionItem
     {
         public IStorage Storage { get; set; }
 

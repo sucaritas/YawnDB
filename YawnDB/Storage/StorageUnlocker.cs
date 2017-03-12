@@ -1,4 +1,8 @@
-﻿namespace YawnDB.Storage
+﻿// <copyright file="StorageUnlocker.cs" company="YawnDB">
+//  By Julio Cesar Saenz
+// </copyright>
+
+namespace YawnDB.Storage
 {
     using System;
     using System.Collections.Generic;
@@ -23,7 +27,7 @@
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (!this.disposedValue)
             {
                 if (disposing)
                 {
@@ -35,8 +39,7 @@
 
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
                 // TODO: set large fields to null.
-
-                disposedValue = true;
+                this.disposedValue = true;
             }
         }
 
@@ -50,7 +53,8 @@
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(true);
+            this.Dispose(true);
+
             // TODO: uncomment the following line if the finalizer is overridden above.
             // GC.SuppressFinalize(this);
         }

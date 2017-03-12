@@ -1,21 +1,25 @@
-﻿namespace YawnDB.Utils
+﻿// <copyright file="Utilities.cs" company="YawnDB">
+//  By Julio Cesar Saenz
+// </copyright>
+
+namespace YawnDB.Utils
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reflection;
     using System.Text;
     using System.Threading.Tasks;
-    using System.Reflection;
     using Bond;
-    using Bond.Protocols;
     using Bond.IO.Unsafe;
+    using Bond.Protocols;
     using YawnDB.Interfaces;
 
     public static class Utilities
     {
         public static IDictionary<string, IIndex> GetIndeciesFromSchema(Type schemaType, Type storageLocationType)
         {
-            IDictionary<string, IIndex> Indicies = new Dictionary<string, IIndex>();
+            IDictionary<string, IIndex> indicies = new Dictionary<string, IIndex>();
             var bondSchema = Schema.GetRuntimeSchema(schemaType);
             var schemaDefFieldMetadata = bondSchema.SchemaDef.structs
                                             .SelectMany(x => x.fields)
@@ -39,8 +43,7 @@
                         list.Add(new Tuple<Type, PropertyInfo, int>(
                                                                     assembly.GetType(attributeParts[0]),
                                                                     schemaType.GetRuntimeProperty(fieldMetadata.name),
-                                                                    int.Parse(attributeParts[2])
-                                                                    ));
+                                                                    int.Parse(attributeParts[2])));
                         indeciesInfo[attributeParts[1]] = list;
                     }
                 }
@@ -56,11 +59,10 @@
                     index.IndexParameters.Add(new IndexParameter() { Name = info.Item2.Name, ParameterGetter = info.Item2 });
                 }
 
-                Indicies[indexInfo.Key] = index;
+                indicies[indexInfo.Key] = index;
             }
 
-
-            return Indicies;
+            return indicies;
         }
     }
 }

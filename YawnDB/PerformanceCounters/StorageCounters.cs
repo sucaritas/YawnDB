@@ -1,11 +1,15 @@
-﻿namespace YawnDB.PerformanceCounters
+﻿// <copyright file="StorageCounters.cs" company="YawnDB">
+//  By Julio Cesar Saenz
+// </copyright>
+
+namespace YawnDB.PerformanceCounters
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
-    using System.Diagnostics;
 
     public class StorageCounters
     {
@@ -30,22 +34,33 @@
         public const string ResizeCounterName = "# Storage resizes";
         public const string WriteContentionCounterName = "# Write contentions";
 
-        public PerformanceCounter InitializeCounter { get; private set;}
+        public PerformanceCounter InitializeCounter { get; private set; }
+
         public PerformanceCounter RecordWriteStartCounter { get; private set; }
+
         public PerformanceCounter RecordWriteFinishedCounter { get; private set; }
+
         public PerformanceCounter RecordReadStartCounter { get; private set; }
+
         public PerformanceCounter RecordReadFinishedCounter { get; private set; }
+
         public PerformanceCounter RecordReadFromCacheCounter { get; private set; }
+
         public PerformanceCounter RecordDeleteStartCounter { get; private set; }
+
         public PerformanceCounter RecordDeleteFinishedCounter { get; private set; }
+
         public PerformanceCounter IndexingStartCounter { get; private set; }
+
         public PerformanceCounter IndexingFinishedCounter { get; private set; }
+
         public PerformanceCounter ResizeCounter { get; private set; }
+
         public PerformanceCounter WriteContentionCounter { get; private set; }
 
-        public StorageCounters(string InstanceName)
+        public StorageCounters(string instanceName)
         {
-            if(SetupCounters())
+            if (SetupCounters())
             {
                 while (!PerformanceCounterCategory.Exists(CounterCategoryName))
                 {
@@ -53,37 +68,37 @@
                 }
             }
 
-            this.InitializeCounter = new PerformanceCounter(CounterCategoryName, InitializeCounterName, InstanceName, false);
+            this.InitializeCounter = new PerformanceCounter(CounterCategoryName, InitializeCounterName, instanceName, false);
             this.InitializeCounter.RawValue = 0;
 
-            this.RecordWriteStartCounter = new PerformanceCounter(CounterCategoryName, RecordWriteStartCounterName, InstanceName, false);
+            this.RecordWriteStartCounter = new PerformanceCounter(CounterCategoryName, RecordWriteStartCounterName, instanceName, false);
             this.RecordWriteStartCounter.RawValue = 0;
-            this.RecordWriteFinishedCounter = new PerformanceCounter(CounterCategoryName, RecordWriteFinishedCounterName, InstanceName, false);
+            this.RecordWriteFinishedCounter = new PerformanceCounter(CounterCategoryName, RecordWriteFinishedCounterName, instanceName, false);
             this.RecordWriteFinishedCounter.RawValue = 0;
 
-            this.RecordReadStartCounter = new PerformanceCounter(CounterCategoryName, RecordReadStartCounterName, InstanceName, false);
+            this.RecordReadStartCounter = new PerformanceCounter(CounterCategoryName, RecordReadStartCounterName, instanceName, false);
             this.RecordReadStartCounter.RawValue = 0;
-            this.RecordReadFinishedCounter = new PerformanceCounter(CounterCategoryName, RecordReadFinishedCounterName, InstanceName, false);
+            this.RecordReadFinishedCounter = new PerformanceCounter(CounterCategoryName, RecordReadFinishedCounterName, instanceName, false);
             this.RecordReadFinishedCounter.RawValue = 0;
 
-            this.RecordReadFromCacheCounter = new PerformanceCounter(CounterCategoryName, RecordReadFromCacheCounterName, InstanceName, false);
+            this.RecordReadFromCacheCounter = new PerformanceCounter(CounterCategoryName, RecordReadFromCacheCounterName, instanceName, false);
             this.RecordReadFromCacheCounter.RawValue = 0;
 
-            this.RecordDeleteStartCounter = new PerformanceCounter(CounterCategoryName, RecordDeleteStartCounterName, InstanceName, false);
+            this.RecordDeleteStartCounter = new PerformanceCounter(CounterCategoryName, RecordDeleteStartCounterName, instanceName, false);
             this.RecordDeleteStartCounter.RawValue = 0;
-            this.RecordDeleteFinishedCounter = new PerformanceCounter(CounterCategoryName, RecordDeleteFinishedCounterName, InstanceName, false);
+            this.RecordDeleteFinishedCounter = new PerformanceCounter(CounterCategoryName, RecordDeleteFinishedCounterName, instanceName, false);
             this.RecordDeleteFinishedCounter.RawValue = 0;
 
-            this.IndexingStartCounter = new PerformanceCounter(CounterCategoryName, IndexingStartCounterName, InstanceName, false);
+            this.IndexingStartCounter = new PerformanceCounter(CounterCategoryName, IndexingStartCounterName, instanceName, false);
             this.IndexingStartCounter.RawValue = 0;
-            this.IndexingFinishedCounter = new PerformanceCounter(CounterCategoryName, IndexingFinishedCounterName, InstanceName, false);
+            this.IndexingFinishedCounter = new PerformanceCounter(CounterCategoryName, IndexingFinishedCounterName, instanceName, false);
             this.IndexingFinishedCounter.RawValue = 0;
 
-            this.ResizeCounter = new PerformanceCounter(CounterCategoryName, ResizeCounterName, InstanceName, false);
+            this.ResizeCounter = new PerformanceCounter(CounterCategoryName, ResizeCounterName, instanceName, false);
             this.ResizeCounter.RawValue = 0;
 
-            this.WriteContentionCounter = new PerformanceCounter(CounterCategoryName, WriteContentionCounterName, InstanceName, false);
-            this.WriteContentionCounter.RawValue = 0; 
+            this.WriteContentionCounter = new PerformanceCounter(CounterCategoryName, WriteContentionCounterName, instanceName, false);
+            this.WriteContentionCounter.RawValue = 0;
         }
 
         public static bool SetupCounters()
@@ -106,7 +121,6 @@
                 recordWriteFinishedCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
                 recordWriteFinishedCount.CounterName = RecordWriteFinishedCounterName;
                 counterDataCollection.Add(recordWriteFinishedCount);
-
 
                 CounterCreationData recordReadStartCount = new CounterCreationData();
                 recordReadStartCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
@@ -143,19 +157,17 @@
                 indexingFinishedCount.CounterName = IndexingFinishedCounterName;
                 counterDataCollection.Add(indexingFinishedCount);
 
-                CounterCreationData ResizeCount = new CounterCreationData();
-                ResizeCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
-                ResizeCount.CounterName = ResizeCounterName;
-                counterDataCollection.Add(ResizeCount);
+                CounterCreationData resizeCount = new CounterCreationData();
+                resizeCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
+                resizeCount.CounterName = ResizeCounterName;
+                counterDataCollection.Add(resizeCount);
 
-                CounterCreationData WriteContentionCount = new CounterCreationData();
-                WriteContentionCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
-                WriteContentionCount.CounterName = WriteContentionCounterName;
-                counterDataCollection.Add(WriteContentionCount);
+                CounterCreationData writeContentionCount = new CounterCreationData();
+                writeContentionCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
+                writeContentionCount.CounterName = WriteContentionCounterName;
+                counterDataCollection.Add(writeContentionCount);
 
-                PerformanceCounterCategory.Create(CounterCategoryName,
-                "Perfomance counters for all YawnDB storages.",
-                PerformanceCounterCategoryType.MultiInstance, counterDataCollection);
+                PerformanceCounterCategory.Create(CounterCategoryName, "Perfomance counters for all YawnDB storages.", PerformanceCounterCategoryType.MultiInstance, counterDataCollection);
 
                 return true;
             }

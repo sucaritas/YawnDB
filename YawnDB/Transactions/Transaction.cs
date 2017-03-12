@@ -1,11 +1,15 @@
-﻿namespace YawnDB.Transactions
+﻿// <copyright file="Transaction.cs" company="YawnDB">
+//  By Julio Cesar Saenz
+// </copyright>
+
+namespace YawnDB.Transactions
 {
     using System;
     using System.Collections.Generic;
-    using YawnDB.Interfaces;
     using System.Reflection;
+    using YawnDB.Interfaces;
 
-    partial class Transaction : YawnSchema, ITransaction
+    public partial class Transaction : YawnSchema, ITransaction
     {
         public IYawn YawnSite { get; set; }
 
@@ -21,7 +25,7 @@
                 {
                     Type schemaType = Type.GetType(item.SchemaType);
                     IStorage storage;
-                    if (YawnSite.RegisteredStorageTypes.TryGetValue(schemaType, out storage))
+                    if (this.YawnSite.RegisteredStorageTypes.TryGetValue(schemaType, out storage))
                     {
                         item.Storage = storage;
                     }
@@ -34,7 +38,7 @@
                 }
             }
 
-            if(!commitedOk)
+            if (!commitedOk)
             {
                 this.State = TransactionState.RollBackStarted;
                 this.YawnSite.SaveRecord(this);
@@ -88,12 +92,12 @@
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (!this.disposedValue)
             {
                 if (disposing)
                 {
                     // TODO: dispose managed state (managed objects).
-                    if(this.State == TransactionState.Created)
+                    if (this.State == TransactionState.Created)
                     {
                         this.Rollback();
                     }
@@ -101,8 +105,7 @@
 
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
                 // TODO: set large fields to null.
-
-                disposedValue = true;
+                this.disposedValue = true;
             }
         }
 
@@ -116,7 +119,8 @@
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(true);
+            this.Dispose(true);
+
             // TODO: uncomment the following line if the finalizer is overridden above.
             // GC.SuppressFinalize(this);
         }

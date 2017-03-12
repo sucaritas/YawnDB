@@ -1,39 +1,43 @@
-﻿namespace YawnDB.Storage.MemStorage
+﻿// <copyright file="MemStorage.cs" company="YawnDB">
+//  By Julio Cesar Saenz
+// </copyright>
+
+namespace YawnDB.Storage.MemStorage
 {
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
     using System;
-    using System.Collections.Generic;
     using System.Collections.Concurrent;
-    using System.Linq;
-    using System.Threading.Tasks;
+    using System.Collections.Generic;
     using System.IO;
     using System.IO.MemoryMappedFiles;
-    using System.Threading;
+    using System.Linq;
     using System.Reflection;
-    using Bond;
-    using Bond.Protocols;
-    using Bond.IO.Unsafe;
     using System.Runtime.Caching;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Bond;
+    using Bond.IO.Unsafe;
+    using Bond.Protocols;
     using YawnDB.EventSources;
-    using YawnDB.PerformanceCounters;
-    using YawnDB.Interfaces;
-    using YawnDB.Utils;
     using YawnDB.Exceptions;
+    using YawnDB.Interfaces;
+    using YawnDB.PerformanceCounters;
     using YawnDB.Transactions;
+    using YawnDB.Utils;
 
     public class MemStorage<T> : IStorage where T : YawnSchema
     {
-        private IYawn YawnSite;
+        private IYawn yawnSite;
 
         public StorageState State { get; private set; } = StorageState.Closed;
 
-        private IDictionary<long, T> ItemsInMemmory = new ConcurrentDictionary<long, T>();
+        private IDictionary<long, T> itemsInMemmory = new ConcurrentDictionary<long, T>();
 
-        private Cloner<T> Cloner = new Cloner<T>(typeof(T));
+        private Cloner<T> cloner = new Cloner<T>(typeof(T));
 
-        private StorageCounters PerfCounters;
+        private StorageCounters perfCounters;
 
-        private string TypeNameNormilized;
+        private string typeNameNormilized;
 
         public string FullStorageName { get; }
 
@@ -41,36 +45,37 @@
 
         public Type SchemaType { get; } = typeof(T);
 
-        private object AutoIdLock = new object();
+        private object autoIdLock = new object();
 
-        private long NextIndex = 0;
+        private long nextIndex = 0;
 
         public MemStorage(IYawn yawnSite)
         {
-            this.YawnSite = yawnSite;
-            this.TypeNameNormilized = this.SchemaType.Namespace + "." + this.SchemaType.Name;
+            this.yawnSite = yawnSite;
+            this.typeNameNormilized = this.SchemaType.Namespace + "." + this.SchemaType.Name;
             if (this.SchemaType.IsGenericType)
             {
-                this.TypeNameNormilized += "[";
+                this.typeNameNormilized += "[";
                 foreach (var genericArgument in this.SchemaType.GetGenericArguments())
                 {
-                    this.TypeNameNormilized += genericArgument.Namespace + "." + genericArgument.Name;
+                    this.typeNameNormilized += genericArgument.Namespace + "." + genericArgument.Name;
                 }
-                this.TypeNameNormilized += "]";
+
+                this.typeNameNormilized += "]";
             }
 
-            this.FullStorageName = yawnSite.DatabaseName + "_" + this.TypeNameNormilized;
+            this.FullStorageName = yawnSite.DatabaseName + "_" + this.typeNameNormilized;
 
             var proterties = typeof(T).GetProperties(BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public);
             foreach (var prop in proterties)
             {
                 if (typeof(IReference).IsAssignableFrom(prop.PropertyType))
                 {
-                    ReferencingProperties.Add(prop);
+                    this.referencingProperties.Add(prop);
                 }
             }
 
-            this.PerfCounters = new StorageCounters(this.FullStorageName);
+            this.perfCounters = new StorageCounters(this.FullStorageName);
         }
 
         public IStorageLocation InsertRecord(YawnSchema instanceToInsert)
@@ -85,31 +90,31 @@
 
         public IStorageLocation SaveRecord(YawnSchema inputInstance)
         {
-            return SaveRecord(inputInstance, null);
+            return this.SaveRecord(inputInstance, null);
         }
 
         public IStorageLocation SaveRecord(YawnSchema instanceToSave, ITransaction transaction)
         {
             if (this.State == StorageState.Closed)
             {
-                throw new DatabaseIsClosedException($"An attemp was made to write to database '{this.YawnSite.DatabaseName}' which is closed");
+                throw new DatabaseIsClosedException($"An attemp was made to write to database '{this.yawnSite.DatabaseName}' which is closed");
             }
 
-            T instance = Cloner.Clone<T>(instanceToSave as T);
+            T instance = this.cloner.Clone<T>(instanceToSave as T);
             T existingInstance;
-            ItemsInMemmory.TryGetValue(instance.Id, out existingInstance);
+            this.itemsInMemmory.TryGetValue(instance.Id, out existingInstance);
 
             if (transaction != null)
             {
                 var transactionItem = new TransactionItem();
                 transactionItem.ItemAction = Transactions.TransactionAction.Update;
-                transactionItem.SchemaType = SchemaType.AssemblyQualifiedName;
-                transactionItem.OldInstance = existingInstance ?? (T)Activator.CreateInstance(SchemaType);
-                transactionItem.NewInstance = instance ?? (T)Activator.CreateInstance(SchemaType);
+                transactionItem.SchemaType = this.SchemaType.AssemblyQualifiedName;
+                transactionItem.OldInstance = existingInstance ?? (T)Activator.CreateInstance(this.SchemaType);
+                transactionItem.NewInstance = instance ?? (T)Activator.CreateInstance(this.SchemaType);
                 transactionItem.Storage = this;
                 transaction.AddTransactionItem(transactionItem);
 
-                var transactionLocation = this.YawnSite.SaveRecord(transaction as YawnSchema);
+                var transactionLocation = this.yawnSite.SaveRecord(transaction as YawnSchema);
                 if (transactionLocation == null)
                 {
                     return null;
@@ -119,55 +124,55 @@
             }
 
             StorageEventSource.Log.RecordWriteStart(this.FullStorageName, instance.Id);
-            this.PerfCounters.RecordWriteStartCounter.Increment();
+            this.perfCounters.RecordWriteStartCounter.Increment();
             if (instance == null)
             {
                 return null;
             }
 
-            ItemsInMemmory[instance.Id] = instance;
+            this.itemsInMemmory[instance.Id] = instance;
 
             StorageEventSource.Log.IndexingStart(this.FullStorageName, instance.Id);
-            this.PerfCounters.IndexingStartCounter.Increment();
+            this.perfCounters.IndexingStartCounter.Increment();
             foreach (var index in this.Indicies.Values)
             {
                 index.UpdateIndex(existingInstance, instance, new MemStorageLocation() { Id = instance.Id });
             }
 
             StorageEventSource.Log.IndexingFinish(this.FullStorageName, instance.Id);
-            this.PerfCounters.IndexingFinishedCounter.Increment();
+            this.perfCounters.IndexingFinishedCounter.Increment();
 
             StorageEventSource.Log.RecordWriteFinish(this.FullStorageName, instance.Id);
-            this.PerfCounters.RecordWriteFinishedCounter.Increment();
+            this.perfCounters.RecordWriteFinishedCounter.Increment();
 
             return new MemStorageLocation() { Id = instance.Id };
         }
 
         public bool DeleteRecord(YawnSchema instance)
         {
-            return DeleteRecord(instance, null);
+            return this.DeleteRecord(instance, null);
         }
 
         public bool DeleteRecord(YawnSchema instance, ITransaction transaction)
         {
             if (this.State == StorageState.Closed)
             {
-                throw new DatabaseIsClosedException($"An attemp was made to read from database '{this.YawnSite.DatabaseName}' which is closed");
+                throw new DatabaseIsClosedException($"An attemp was made to read from database '{this.yawnSite.DatabaseName}' which is closed");
             }
 
             StorageEventSource.Log.RecordDeleteStart(this.FullStorageName, instance.Id);
-            this.PerfCounters.RecordDeleteStartCounter.Increment();
+            this.perfCounters.RecordDeleteStartCounter.Increment();
 
             if (transaction != null)
             {
                 var transactionItem = new TransactionItem();
                 transactionItem.ItemAction = Transactions.TransactionAction.Delete;
-                transactionItem.SchemaType = SchemaType.AssemblyQualifiedName;
-                transactionItem.OldInstance = instance ?? (T)Activator.CreateInstance(SchemaType);
-                transactionItem.NewInstance = instance ?? (T)Activator.CreateInstance(SchemaType);
+                transactionItem.SchemaType = this.SchemaType.AssemblyQualifiedName;
+                transactionItem.OldInstance = instance ?? (T)Activator.CreateInstance(this.SchemaType);
+                transactionItem.NewInstance = instance ?? (T)Activator.CreateInstance(this.SchemaType);
                 transactionItem.Storage = this;
                 transaction.AddTransactionItem(transactionItem);
-                return this.YawnSite.SaveRecord(transaction as YawnSchema) == null ? false : true;
+                return this.yawnSite.SaveRecord(transaction as YawnSchema) == null ? false : true;
             }
 
             foreach (var index in this.Indicies.Values)
@@ -176,11 +181,11 @@
             }
 
             StorageEventSource.Log.RecordDeleteFinish(this.FullStorageName, instance.Id);
-            this.PerfCounters.RecordDeleteFinishedCounter.Increment();
-            return ItemsInMemmory.Remove(instance.Id);
+            this.perfCounters.RecordDeleteFinishedCounter.Increment();
+            return this.itemsInMemmory.Remove(instance.Id);
         }
 
-        private List<PropertyInfo> ReferencingProperties = new List<PropertyInfo>();
+        private List<PropertyInfo> referencingProperties = new List<PropertyInfo>();
 
         public IEnumerable<TE> GetRecords<TE>(IEnumerable<IStorageLocation> recordsToPull) where TE : YawnSchema
         {
@@ -188,7 +193,7 @@
             foreach (var location in recordsToPull)
             {
                 T record;
-                if (ItemsInMemmory.TryGetValue((location as MemStorageLocation).Id, out record))
+                if (this.itemsInMemmory.TryGetValue((location as MemStorageLocation).Id, out record))
                 {
                     yield return record as TE;
                 }
@@ -199,24 +204,24 @@
 
         public IEnumerable<TE> GetAllRecords<TE>() where TE : YawnSchema
         {
-            return this.ItemsInMemmory.Values.Select(x => PropagateSite(x as TE) as TE);
+            return this.itemsInMemmory.Values.Select(x => this.PropagateSite(x as TE) as TE);
         }
 
         public YawnSchema CreateRecord()
         {
             var record = Activator.CreateInstance(typeof(T)) as T;
             record.Id = this.GetNextID();
-            return PropagateSite(record as T) as T;
+            return this.PropagateSite(record as T) as T;
         }
 
         public long GetNextID()
         {
-            lock (AutoIdLock)
+            lock (this.autoIdLock)
             {
-                Interlocked.Increment(ref this.NextIndex);
+                Interlocked.Increment(ref this.nextIndex);
             }
 
-            return this.NextIndex;
+            return this.nextIndex;
         }
 
         public void ReIndexStorage(IList<IIndex> needReindexing)
@@ -226,33 +231,32 @@
                 return;
             }
 
-            foreach (var record in this.ItemsInMemmory.Values)
+            foreach (var record in this.itemsInMemmory.Values)
             {
-                this.PerfCounters.IndexingStartCounter.Increment();
+                this.perfCounters.IndexingStartCounter.Increment();
                 foreach (var index in needReindexing)
                 {
                     index.SetIndex(record, new MemStorageLocation() { Id = record.Id });
                 }
 
-                this.PerfCounters.IndexingFinishedCounter.Increment();
+                this.perfCounters.IndexingFinishedCounter.Increment();
             }
         }
 
         public void Close()
         {
-
         }
 
         public void Open()
         {
-            this.PerfCounters.InitializeCounter.Increment();
+            this.perfCounters.InitializeCounter.Increment();
         }
 
         private YawnSchema PropagateSite(YawnSchema instance)
         {
-            foreach (var prop in ReferencingProperties)
+            foreach (var prop in this.referencingProperties)
             {
-                ((IReference)prop.GetValue(instance)).YawnSite = this.YawnSite;
+                ((IReference)prop.GetValue(instance)).YawnSite = this.yawnSite;
             }
 
             return instance;

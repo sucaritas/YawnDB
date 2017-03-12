@@ -1,11 +1,15 @@
-﻿namespace YawnDB.PerformanceCounters
+﻿// <copyright file="YawnCounters.cs" company="YawnDB">
+//  By Julio Cesar Saenz
+// </copyright>
+
+namespace YawnDB.PerformanceCounters
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
-    using System.Diagnostics;
 
     public class YawnCounters
     {
@@ -21,16 +25,21 @@
         public const string TransactionRollbackFailedCounterName = "# Transaction Rollback Failed";
         public const string TransactionRollbackFinishedCounterName = "# Transaction Rollback Finished";
 
-
         public PerformanceCounter InitializeCounter { get; private set; }
+
         public PerformanceCounter TransactionCommitStartCounter { get; private set; }
+
         public PerformanceCounter TransactionCommitFailedCounter { get; private set; }
+
         public PerformanceCounter TransactionCommitFinishedCounter { get; private set; }
+
         public PerformanceCounter TransactionRollbackStartCounter { get; private set; }
+
         public PerformanceCounter TransactionRollbackFailedCounter { get; private set; }
+
         public PerformanceCounter TransactionRollbackFinishedCounter { get; private set; }
 
-        public YawnCounters(string InstanceName)
+        public YawnCounters(string instanceName)
         {
             if (SetupCounters())
             {
@@ -40,25 +49,25 @@
                 }
             }
 
-            this.InitializeCounter = new PerformanceCounter(CounterCategoryName, InitializeCounterName, InstanceName, false);
+            this.InitializeCounter = new PerformanceCounter(CounterCategoryName, InitializeCounterName, instanceName, false);
             this.InitializeCounter.RawValue = 0;
 
-            this.TransactionCommitStartCounter = new PerformanceCounter(CounterCategoryName, TransactionCommitStartCounterName, InstanceName, false);
+            this.TransactionCommitStartCounter = new PerformanceCounter(CounterCategoryName, TransactionCommitStartCounterName, instanceName, false);
             this.TransactionCommitStartCounter.RawValue = 0;
 
-            this.TransactionCommitFailedCounter = new PerformanceCounter(CounterCategoryName, TransactionCommitFailedCounterName, InstanceName, false);
+            this.TransactionCommitFailedCounter = new PerformanceCounter(CounterCategoryName, TransactionCommitFailedCounterName, instanceName, false);
             this.TransactionCommitFailedCounter.RawValue = 0;
 
-            this.TransactionCommitFinishedCounter = new PerformanceCounter(CounterCategoryName, TransactionCommitFinishedCounterName, InstanceName, false);
+            this.TransactionCommitFinishedCounter = new PerformanceCounter(CounterCategoryName, TransactionCommitFinishedCounterName, instanceName, false);
             this.TransactionCommitFinishedCounter.RawValue = 0;
 
-            this.TransactionRollbackStartCounter = new PerformanceCounter(CounterCategoryName, TransactionRollbackStartCounterName, InstanceName, false);
+            this.TransactionRollbackStartCounter = new PerformanceCounter(CounterCategoryName, TransactionRollbackStartCounterName, instanceName, false);
             this.TransactionRollbackStartCounter.RawValue = 0;
 
-            this.TransactionRollbackFailedCounter = new PerformanceCounter(CounterCategoryName, TransactionRollbackFailedCounterName, InstanceName, false);
+            this.TransactionRollbackFailedCounter = new PerformanceCounter(CounterCategoryName, TransactionRollbackFailedCounterName, instanceName, false);
             this.TransactionRollbackFailedCounter.RawValue = 0;
 
-            this.TransactionRollbackFinishedCounter = new PerformanceCounter(CounterCategoryName, TransactionRollbackFinishedCounterName, InstanceName, false);
+            this.TransactionRollbackFinishedCounter = new PerformanceCounter(CounterCategoryName, TransactionRollbackFinishedCounterName, instanceName, false);
             this.TransactionRollbackFinishedCounter.RawValue = 0;
         }
 
@@ -83,7 +92,6 @@
                 transactionCommitFailedCount.CounterName = TransactionCommitFailedCounterName;
                 counterDataCollection.Add(transactionCommitFailedCount);
 
-
                 CounterCreationData transactionCommitFinishedCount = new CounterCreationData();
                 transactionCommitFinishedCount.CounterType = PerformanceCounterType.RateOfCountsPerSecond32;
                 transactionCommitFinishedCount.CounterName = TransactionCommitFinishedCounterName;
@@ -104,9 +112,7 @@
                 transactionRollbackFinishedCount.CounterName = TransactionRollbackFinishedCounterName;
                 counterDataCollection.Add(transactionRollbackFinishedCount);
 
-                PerformanceCounterCategory.Create(CounterCategoryName,
-                "Perfomance counters for YawnDB.",
-                PerformanceCounterCategoryType.MultiInstance, counterDataCollection);
+                PerformanceCounterCategory.Create(CounterCategoryName, "Perfomance counters for YawnDB.", PerformanceCounterCategoryType.MultiInstance, counterDataCollection);
 
                 return true;
             }

@@ -1,4 +1,8 @@
-﻿namespace YawnDB.Extensions
+﻿// <copyright file="SchemaExtensions.cs" company="YawnDB">
+//  By Julio Cesar Saenz
+// </copyright>
+
+namespace YawnDB.Extensions
 {
     using YawnDB.Interfaces;
 

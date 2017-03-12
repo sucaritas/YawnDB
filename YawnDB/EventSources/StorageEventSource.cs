@@ -1,43 +1,22 @@
-﻿namespace YawnDB.EventSources
+﻿// <copyright file="StorageEventSource.cs" company="YawnDB">
+//  By Julio Cesar Saenz
+// </copyright>
+
+namespace YawnDB.EventSources
 {
     using System.Diagnostics.Tracing;
-
-    public static class StorageEvents
-    {
-        public const int InitializeStart = 1;
-        public const int InitializeFinish = 2;
-
-        public const int RecordWriteStart = 3;
-        public const int RecordWriteFinish = 4;
-
-        public const int RecordReadFromCache = 5;
-        public const int RecordReadStart = 6;
-        public const int RecordReadFinish = 7;
-
-        public const int RecordSerializeStart = 8;
-        public const int RecordSerializeFinish = 9;
-
-        public const int RecordDeserializeStart = 10;
-        public const int RecordDeserializeFinish = 11;
-
-        public const int RecordDeleteStart = 11;
-        public const int RecordDeleteFinish = 12;
-
-        public const int IndexingStart = 13;
-        public const int IndexingFinish = 14;
-    }
 
     [EventSource(Name = "StorageEventSource", Guid = "3dad70c1-5914-4b83-a074-f451de547eca")]
     public class StorageEventSource : EventSource
     {
-        public static StorageEventSource Log = new StorageEventSource();
+        public static StorageEventSource Log { get; set; } = new StorageEventSource();
 
         [Event(StorageEvents.InitializeStart, Level = EventLevel.Informational)]
         public void InitializeStart(string storageName)
         {
             if (this.IsEnabled())
             {
-                WriteEvent(StorageEvents.InitializeStart, storageName);
+                this.WriteEvent(StorageEvents.InitializeStart, storageName);
             }
         }
 
@@ -46,7 +25,7 @@
         {
             if (this.IsEnabled())
             {
-                WriteEvent(StorageEvents.InitializeFinish, storageName);
+                this.WriteEvent(StorageEvents.InitializeFinish, storageName);
             }
         }
 
@@ -55,7 +34,7 @@
         {
             if (this.IsEnabled())
             {
-                WriteEvent(StorageEvents.RecordWriteStart, storageName + ":" + recordID);
+                this.WriteEvent(StorageEvents.RecordWriteStart, storageName + ":" + recordID);
             }
         }
 
@@ -64,7 +43,7 @@
         {
             if (this.IsEnabled())
             {
-                WriteEvent(StorageEvents.RecordWriteFinish, storageName + ":" + recordID);
+                this.WriteEvent(StorageEvents.RecordWriteFinish, storageName + ":" + recordID);
             }
         }
 
@@ -73,7 +52,7 @@
         {
             if (this.IsEnabled())
             {
-                WriteEvent(StorageEvents.RecordReadFromCache, storageName + ":" + recordID);
+                this.WriteEvent(StorageEvents.RecordReadFromCache, storageName + ":" + recordID);
             }
         }
 
@@ -82,7 +61,7 @@
         {
             if (this.IsEnabled())
             {
-                WriteEvent(StorageEvents.RecordReadStart, storageName + ":" + recordID);
+                this.WriteEvent(StorageEvents.RecordReadStart, storageName + ":" + recordID);
             }
         }
 
@@ -91,7 +70,7 @@
         {
             if (this.IsEnabled())
             {
-                WriteEvent(StorageEvents.RecordReadFinish, storageName + ":" + recordID);
+                this.WriteEvent(StorageEvents.RecordReadFinish, storageName + ":" + recordID);
             }
         }
 
@@ -100,7 +79,7 @@
         {
             if (this.IsEnabled())
             {
-                WriteEvent(StorageEvents.RecordSerializeStart, storageName + ":" + recordID);
+                this.WriteEvent(StorageEvents.RecordSerializeStart, storageName + ":" + recordID);
             }
         }
 
@@ -109,7 +88,7 @@
         {
             if (this.IsEnabled())
             {
-                WriteEvent(StorageEvents.RecordSerializeFinish, storageName + ":" + recordID);
+                this.WriteEvent(StorageEvents.RecordSerializeFinish, storageName + ":" + recordID);
             }
         }
 
@@ -118,7 +97,7 @@
         {
             if (this.IsEnabled())
             {
-                WriteEvent(StorageEvents.RecordDeserializeStart, storageName + ":" + recordID);
+                this.WriteEvent(StorageEvents.RecordDeserializeStart, storageName + ":" + recordID);
             }
         }
 
@@ -127,7 +106,7 @@
         {
             if (this.IsEnabled())
             {
-                WriteEvent(StorageEvents.RecordDeserializeFinish, storageName + ":" + recordID);
+                this.WriteEvent(StorageEvents.RecordDeserializeFinish, storageName + ":" + recordID);
             }
         }
 
@@ -136,7 +115,7 @@
         {
             if (this.IsEnabled())
             {
-                WriteEvent(StorageEvents.RecordDeleteStart, storageName + ":" + recordID);
+                this.WriteEvent(StorageEvents.RecordDeleteStart, storageName + ":" + recordID);
             }
         }
 
@@ -145,7 +124,7 @@
         {
             if (this.IsEnabled())
             {
-                WriteEvent(StorageEvents.RecordDeleteFinish, storageName + ":" + recordID);
+                this.WriteEvent(StorageEvents.RecordDeleteFinish, storageName + ":" + recordID);
             }
         }
 
@@ -154,7 +133,7 @@
         {
             if (this.IsEnabled())
             {
-                WriteEvent(StorageEvents.IndexingStart, storageName + ":" + recordID);
+                this.WriteEvent(StorageEvents.IndexingStart, storageName + ":" + recordID);
             }
         }
 
@@ -163,7 +142,7 @@
         {
             if (this.IsEnabled())
             {
-                WriteEvent(StorageEvents.IndexingFinish, storageName + ":" + recordID);
+                this.WriteEvent(StorageEvents.IndexingFinish, storageName + ":" + recordID);
             }
         }
     }

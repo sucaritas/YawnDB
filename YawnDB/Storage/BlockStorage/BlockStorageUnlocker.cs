@@ -1,11 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// <copyright file="BlockStorageUnlocker.cs" company="YawnDB">
+//  By Julio Cesar Saenz
+// </copyright>
 
 namespace YawnDB.Storage.BlockStorage
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+
     internal class BlockStorageUnlocker<T> : IDisposable where T : YawnSchema
     {
         public BlockStorage<T> Storage { get; private set; }
@@ -21,7 +25,7 @@ namespace YawnDB.Storage.BlockStorage
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (!this.disposedValue)
             {
                 if (disposing)
                 {
@@ -32,8 +36,7 @@ namespace YawnDB.Storage.BlockStorage
 
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
                 // TODO: set large fields to null.
-
-                disposedValue = true;
+                this.disposedValue = true;
             }
         }
 
@@ -47,7 +50,8 @@ namespace YawnDB.Storage.BlockStorage
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(true);
+            this.Dispose(true);
+
             // TODO: uncomment the following line if the finalizer is overridden above.
             // GC.SuppressFinalize(this);
         }

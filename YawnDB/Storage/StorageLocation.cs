@@ -1,13 +1,10 @@
-﻿namespace YawnDB.Storage
-{
-    using Bond;
-    using Bond.Protocols;
-    using Bond.IO.Unsafe;
-    using YawnDB.Interfaces;
-    using System.Linq;
+﻿// <copyright file="StorageLocation.cs" company="YawnDB">
+//  By Julio Cesar Saenz
+// </copyright>
 
+namespace YawnDB.Storage
+{
     public partial class StorageLocation : YawnDB.Interfaces.IStorageLocation
     {
-        
     }
 }
