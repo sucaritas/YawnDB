@@ -64,7 +64,13 @@ namespace YawnDB.Storage
                 while (mylock.Readers > minReaders)
                 {
                     this.contentionCounter.Increment();
-                    Thread.Sleep(0);
+
+                    // Slepp(0) pauses execution but does not give up its slice of time
+                    // Thread.Sleep(0);
+                    // Yield pauses and yield its processor time to another thread (in the same processor) to run if ready.
+                    // Did not see any perf regressions using yield, and just by the sound of it.
+                    // it seems like yield is the most appropriate method to use.
+                    Thread.Yield();
                 }
             }
         }
@@ -77,7 +83,12 @@ namespace YawnDB.Storage
                 {
                     while (lockKV.Value.Readers > minReaders)
                     {
-                        Thread.Sleep(0);
+                        // Slepp(0) pauses execution but does not give up its slice of time
+                        // Thread.Sleep(0);
+                        // Yield pauses and yield its processor time to another thread (in the same processor) to run if ready.
+                        // Did not see any perf regressions using yield, and just by the sound of it.
+                        // it seems like yield is the most appropriate method to use.
+                        Thread.Yield();
                     }
                 }
             }

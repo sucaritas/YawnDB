@@ -894,7 +894,9 @@ namespace YawnDB.Storage.BlockStorage
             while (this.resizers > 0)
             {
                 someoneWasAlreadyResizing = true;
-                Thread.Sleep(0);
+
+                // Thread.Sleep(0);
+                Thread.Yield();
             }
 
             return someoneWasAlreadyResizing;
