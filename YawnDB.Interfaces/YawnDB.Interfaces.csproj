@@ -71,6 +71,8 @@
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="IIdexArguments.cs" />
     <Compile Include="IIndex.cs" />
+    <Compile Include="Locking\IRecordLocker.cs" />
+    <Compile Include="Locking\IRecordUnlocker.cs" />
     <Compile Include="IReference.cs" />
     <Compile Include="IReferenceTo.cs" />
     <Compile Include="IStorage.cs" />
@@ -78,7 +80,9 @@
     <Compile Include="ITransaction.cs" />
     <Compile Include="ITransactionItem.cs" />
     <Compile Include="IYawn.cs" />
+    <Compile Include="Locking\IRecordLockPair.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Locking\RecordLockType.cs" />
     <Compile Include="StorageState.cs" />
   </ItemGroup>
   <ItemGroup>

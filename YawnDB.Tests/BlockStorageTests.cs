@@ -27,7 +27,7 @@
         [TestCase]
         public void StartBlockStoreageEmptyTest()
         {
-            var dbName = "StartBlockStoreageEmptyTest";
+            var dbName = nameof(StartBlockStoreageEmptyTest);
             var bufferBlocks = 10;
             var blockSize = 128;
             var path = Path.Combine(basePath, dbName);
@@ -46,7 +46,7 @@
         [TestCase]
         public void WriteReadRecorTest()
         {
-            var dbName = "WriteReadRecorTest";
+            var dbName = nameof(WriteReadRecorTest);
             var bufferBlocks = 10;
             var blockSize = 128;
             var path = Path.Combine(basePath, dbName);
@@ -59,7 +59,7 @@
             Assert.IsTrue(Directory.Exists($"{path}\\YawnDB.Testing.Person"));
             FileInfo info = new FileInfo($"{path}\\YawnDB.Testing.Person\\YawnDB.Testing.Person.ydb");
             Assert.AreEqual(blockSize * bufferBlocks, info.Length);
-           
+
             var writeResult = writeRandomPersonToStorage(storage);
             var personRead = storage.ReadRecord(writeResult.Item2);
             Assert.AreEqual(writeResult.Item1.FirstName, personRead.FirstName);
@@ -72,7 +72,7 @@
         [TestCase]
         public void WriteRecorOnClosedStorageTest()
         {
-            var dbName = "WriteRecorOnClosedStorageTest";
+            var dbName = nameof(WriteRecorOnClosedStorageTest);
             var bufferBlocks = 10;
             var blockSize = 128;
             var path = Path.Combine(basePath, dbName);
@@ -94,14 +94,14 @@
             }
             catch (Exception e)
             {
-                Assert.AreEqual(typeof(DatabaseIsClosedException), e.GetType()); // Actual exception from storage
+                Assert.AreEqual(typeof(DatabaseIsClosedException), e.GetType());
             }
         }
 
         [TestCase]
         public void ReadRecorOnClosedStorageTest()
         {
-            var dbName = "ReadRecorOnClosedStorageTest";
+            var dbName = nameof(ReadRecorOnClosedStorageTest);
             var bufferBlocks = 10;
             var blockSize = 128;
             var path = Path.Combine(basePath, dbName);
@@ -124,7 +124,7 @@
             }
             catch (Exception e)
             {
-                Assert.AreEqual(typeof(DatabaseIsClosedException), e.GetType()); // Actual exception from storage
+                Assert.AreEqual(typeof(DatabaseIsClosedException), e.GetType());
             }
         }
 
@@ -132,7 +132,7 @@
         public void WriteInParallelRecorTest()
         {
             var dbName = "WriteInParallelRecorTest";
-            var bufferBlocks = 10;
+            var bufferBlocks = 100;
             var blockSize = 128;
             var path = Path.Combine(basePath, dbName);
             SetupTestDirectory(path);
@@ -149,13 +149,13 @@
             Task[] threads = new Task[noThreads];
             for (int i = 0; i < noThreads; i++)
             {
-                threads[i] = new Task(()=> writeRandomPersonToStorage(storage));
+                threads[i] = new Task(() => writeRandomPersonToStorage(storage));
                 threads[i].Start();
             }
 
             Task.WaitAll(threads);
 
-            if (threads.Any(x=>x.Status != TaskStatus.RanToCompletion))
+            if (threads.Any(x => x.Status != TaskStatus.RanToCompletion))
             {
                 Assert.Fail("A thread failed");
             }
@@ -167,8 +167,8 @@
         [TestCase]
         public void UpdateInParallelRecorTest()
         {
-            var dbName = "UpdateInParallelRecorTest";
-            var bufferBlocks = 10;
+            var dbName = nameof(UpdateInParallelRecorTest);
+            var bufferBlocks = 100000;
             var blockSize = 128;
             var path = Path.Combine(basePath, dbName);
             SetupTestDirectory(path);
@@ -181,37 +181,38 @@
             FileInfo info = new FileInfo($"{path}\\YawnDB.Testing.Person\\YawnDB.Testing.Person.ydb");
             Assert.AreEqual(blockSize * bufferBlocks, info.Length);
 
-            var noThreads = 10;
+            var noThreads = 100;
+            var noOperationsPerThread = 10000;
+            var noOfRecords = 10;
             Task[] threads = new Task[noThreads];
+            for (int i = 0; i < noOfRecords; i++)
+            {
+                writeRandomPersonToStorage(storage);
+            }
+
+            var personRef = new ReferenceTo<Person>();
+            personRef.YawnSite = yawnDB;
+            var personArray = personRef.ToArray();
+            threads = new Task[noThreads];
+
             for (int i = 0; i < noThreads; i++)
             {
-                threads[i] = new Task(() => writeRandomPersonToStorage(storage));
+                threads[i] = new Task(() =>
+                {
+                    for (int j = 0; j < noOperationsPerThread; j++)
+                    {
+                        var prn = personArray[i % noOfRecords];
+                        prn.FirstName = i.ToString();
+                        yawnDB.SaveRecord(prn);
+                    }
+                });
+
                 threads[i].Start();
             }
 
             Task.WaitAll(threads);
-            var personRef = new ReferenceTo<Person>();
-            personRef.YawnSite = yawnDB;
 
-            for (int j = 0; j < noThreads * 10; j++)
-            {
-                threads = new Task[noThreads * 10];
-                for (int i = 0; i < noThreads * 10; i++)
-                {
-                    threads[i] = new Task(() =>
-                    {
-                        var prn = personRef.ToArray()[i % 10];
-                        prn.FirstName = i.ToString();
-                        var res = yawnDB.SaveRecord(prn);
-                    });
-
-                    threads[i].Start();
-                }
-            }
-
-            Task.WaitAll(threads);
-
-            Assert.AreEqual(noThreads, storage.GetAllRecords<Person>().Count());
+            Assert.AreEqual(noOfRecords, storage.GetAllRecords<Person>().Count());
             yawnDB.Close();
         }
 
@@ -228,7 +229,7 @@
             yawnDB.RegisterSchema<Person>(storage);
             yawnDB.Open(false);
             var writeResult = writeRandomPersonToStorage(storage);
-            var index = storage.Indicies["FirstNameIndex"] as HashKeyIndex;
+            var index = storage.Indicies["YawnKeyIndex"] as HashKeyIndex;
             var locationInIndex = index.GetLocationForInstance(writeResult.Item1);
             Assert.AreEqual(writeResult.Item2, locationInIndex);
             yawnDB.Close();
@@ -248,7 +249,7 @@
             yawnDB.Open(false);
             var writeResult = writeRandomPersonToStorage(storage);
             yawnDB.DeleteRecord(writeResult.Item1);
-            var index = storage.Indicies["FirstNameIndex"] as HashKeyIndex;
+            var index = storage.Indicies["YawnKeyIndex"] as HashKeyIndex;
             var locationInIndex = index.GetLocationForInstance(writeResult.Item1);
             Assert.AreEqual(null, locationInIndex);
             yawnDB.Close();
@@ -272,11 +273,10 @@
             anotherPerson.FirstName = "AChangedName";
             yawnDB.SaveRecord(anotherPerson);
 
-            var index = storage.Indicies["FirstNameIndex"] as HashKeyIndex;
+            var index = storage.Indicies["YawnKeyIndex"] as HashKeyIndex;
             var locationInIndex = index.GetLocationForInstance(writeResult.Item1) as BlockStorageLocation;
             var anotherLocationInIndex = index.GetLocationForInstance(anotherPerson) as BlockStorageLocation;
             Assert.AreNotEqual((writeResult.Item2 as BlockStorageLocation).Address, anotherLocationInIndex.Address);
-            Assert.AreEqual(null, locationInIndex);
             yawnDB.Close();
         }
     }

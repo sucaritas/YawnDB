@@ -3,7 +3,6 @@ namespace YawnDB.Testing
 
 struct Person : YawnDB.YawnSchema
 {
-    [Index("YawnDB.Index.HashKey.HashKeyIndex,FirstNameIndex, 0")]
     1: string FirstName;
     2: string LastName;
     3: int32 Age;

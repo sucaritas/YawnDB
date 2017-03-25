@@ -10,6 +10,7 @@ namespace YawnDB.Interfaces
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+    using YawnDB.Locking;
 
     public interface IYawn
     {
@@ -22,6 +23,8 @@ namespace YawnDB.Interfaces
         ConcurrentDictionary<Type, IReference> RegisteredTypes { get; }
 
         ConcurrentDictionary<Type, IStorage> RegisteredStorageTypes { get; }
+
+        IRecordLocker RecordLocker { get; }
 
         bool RegisterSchema<T>(IStorage storage) where T : YawnSchema;
 
@@ -48,5 +51,7 @@ namespace YawnDB.Interfaces
         bool DeleteRecord(YawnSchema instance);
 
         bool DeleteRecord(YawnSchema instance, ITransaction transaction);
+
+        T GetRecord<T>(long id) where T : YawnSchema;
     }
 }

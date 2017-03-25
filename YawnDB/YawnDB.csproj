@@ -69,11 +69,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="EventSources\StorageEvents.cs" />
-    <Compile Include="EventSources\StorageEventSource.cs" />
     <Compile Include="Exceptions\DatabaseIsClosedException.cs" />
     <Compile Include="Exceptions\DatabaseTransactionsAreDisabled.cs" />
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="Locking\RecordLockPair.cs" />
+    <Compile Include="Locking\RecordLocker.cs" />
+    <Compile Include="Locking\RecordUnlocker.cs" />
     <Compile Include="PerformanceCounters\StorageCounters.cs" />
     <BondCodegen Include="Storage\BlockStorage\BlockStorageLocation.bond" />
     <Compile Include="PerformanceCounters\YawnCounters.cs" />
@@ -82,7 +83,7 @@
     <Compile Include="Storage\BlockStorage\BlockStorageUnlocker.cs" />
     <Compile Include="Storage\StorageLocker.cs" />
     <Compile Include="Storage\BlockStorage\FreeBlocks.cs" />
-    <Compile Include="IndexParameters.cs" />
+    <Compile Include="Index\IndexParameters.cs" />
     <Compile Include="Exceptions\RegistrationException.cs" />
     <Compile Include="Extensions\SchemaExtensions.cs" />
     <Compile Include="Index\HashKey\HashKeyIndex.cs" />
@@ -120,6 +121,10 @@
       <Project>{aded1921-6dea-4dce-a31e-5f915d633124}</Project>
       <Name>Yawn.DataSchemas</Name>
     </ProjectReference>
+    <ProjectReference Include="..\YawnDB.EventSources\YawnDB.EventSources.csproj">
+      <Project>{5c6ca7f9-9663-40b8-a56a-7bb7ed23b5d2}</Project>
+      <Name>YawnDB.EventSources</Name>
+    </ProjectReference>
     <ProjectReference Include="..\YawnDB.Interfaces\YawnDB.Interfaces.csproj">
       <Project>{56fad19f-95b5-49aa-9934-197b57ece3b0}</Project>
       <Name>YawnDB.Interfaces</Name>
@@ -130,6 +135,7 @@
     <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.0\analyzers\dotnet\cs\StyleCop.Analyzers.CodeFixes.dll" />
     <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.0\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

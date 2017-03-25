@@ -2,7 +2,7 @@
 //  By Julio Cesar Saenz
 // </copyright>
 
-namespace YawnDB
+namespace YawnDB.Index
 {
     using System.Collections.Generic;
     using YawnDB.Interfaces;

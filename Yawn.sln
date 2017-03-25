@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yawn.DataSchemas", "Yawn.Da
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YawnDB.Tests", "YawnDB.Tests\YawnDB.Tests.csproj", "{571B56E9-99C1-47F6-8A38-91340134E29C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YawnDB.EventSources", "YawnDB.EventSources\YawnDB.EventSources.csproj", "{5C6CA7F9-9663-40B8-A56A-7BB7ED23B5D2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{571B56E9-99C1-47F6-8A38-91340134E29C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{571B56E9-99C1-47F6-8A38-91340134E29C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{571B56E9-99C1-47F6-8A38-91340134E29C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C6CA7F9-9663-40B8-A56A-7BB7ED23B5D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C6CA7F9-9663-40B8-A56A-7BB7ED23B5D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C6CA7F9-9663-40B8-A56A-7BB7ED23B5D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C6CA7F9-9663-40B8-A56A-7BB7ED23B5D2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
