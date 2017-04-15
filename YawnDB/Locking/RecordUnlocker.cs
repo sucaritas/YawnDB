@@ -1,21 +1,24 @@
-﻿// <copyright file="StorageUnlocker.cs" company="YawnDB">
+﻿// <copyright file="RecordUnlocker.cs" company="YawnDB">
 //  By Julio Cesar Saenz
 // </copyright>
 
-namespace YawnDB.Storage
+namespace YawnDB.Locking
 {
     using System;
 
-    public class StorageUnlocker : IDisposable
+    public class RecordUnlocker : IRecordUnlocker, IDisposable
     {
-        public StorageSyncLockCounter SyncCounter { get; private set; } = null;
+        public IRecordLockPair SyncCounter { get; private set; } = null;
 
-        public StorageLocker RecordLocker { get; private set; } = null;
+        public IRecordLocker RecordLocker { get; private set; } = null;
 
-        public StorageUnlocker(StorageSyncLockCounter syncCounter, StorageLocker recordLocker)
+        public RecordLockType RecordLockType { get; private set; } = RecordLockType.Write;
+
+        public RecordUnlocker(IRecordLocker recordLocker, IRecordLockPair syncCounter, RecordLockType recordLockType)
         {
-            this.RecordLocker = recordLocker;
             this.SyncCounter = syncCounter;
+            this.RecordLocker = recordLocker;
+            this.RecordLockType = recordLockType;
         }
 
         #region IDisposable Support
@@ -28,9 +31,7 @@ namespace YawnDB.Storage
                 if (disposing)
                 {
                     // dispose managed state (managed objects).
-                    this.RecordLocker.UnLockRecord(this.SyncCounter);
-                    this.RecordLocker = null;
-                    this.SyncCounter = null;
+                    this.RecordLocker.UnLockRecord(this.SyncCounter, this.RecordLockType);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
@@ -40,7 +41,7 @@ namespace YawnDB.Storage
         }
 
         // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
-        // ~StorageUnlocker() {
+        // ~RecordUnlocker() {
         //   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
         //   Dispose(false);
         // }

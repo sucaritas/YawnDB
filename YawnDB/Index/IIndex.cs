@@ -2,7 +2,7 @@
 //  By Julio Cesar Saenz
 // </copyright>
 
-namespace YawnDB.Interfaces
+namespace YawnDB.Index
 {
     using System;
     using System.Collections.Generic;
@@ -11,6 +11,8 @@ namespace YawnDB.Interfaces
     using System.Text;
     using System.Threading.Tasks;
     using Bond;
+
+    using YawnDB.Storage;
 
     public interface IIndex
     {

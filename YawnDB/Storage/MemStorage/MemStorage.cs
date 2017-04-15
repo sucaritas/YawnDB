@@ -20,7 +20,7 @@ namespace YawnDB.Storage.MemStorage
     using Bond.Protocols;
     using YawnDB.EventSources;
     using YawnDB.Exceptions;
-    using YawnDB.Interfaces;
+    using YawnDB.Index;
     using YawnDB.PerformanceCounters;
     using YawnDB.Transactions;
     using YawnDB.Utils;
@@ -109,8 +109,16 @@ namespace YawnDB.Storage.MemStorage
                 var transactionItem = new TransactionItem();
                 transactionItem.ItemAction = Transactions.TransactionAction.Update;
                 transactionItem.SchemaType = this.SchemaType.AssemblyQualifiedName;
-                transactionItem.OldInstance = existingInstance ?? (T)Activator.CreateInstance(this.SchemaType);
-                transactionItem.NewInstance = instance ?? (T)Activator.CreateInstance(this.SchemaType);
+                if (existingInstance != null)
+                {
+                    transactionItem.OldInstance = new Bonded<T>(existingInstance);
+                }
+                else
+                {
+                    transactionItem.OldInstance = new Bonded<YawnSchema>(new YawnSchema() { Id = -1 });
+                }
+
+                transactionItem.NewInstance = new Bonded<T>(instance);
                 transactionItem.Storage = this;
                 transaction.AddTransactionItem(transactionItem);
 
@@ -168,8 +176,12 @@ namespace YawnDB.Storage.MemStorage
                 var transactionItem = new TransactionItem();
                 transactionItem.ItemAction = Transactions.TransactionAction.Delete;
                 transactionItem.SchemaType = this.SchemaType.AssemblyQualifiedName;
-                transactionItem.OldInstance = instance ?? (T)Activator.CreateInstance(this.SchemaType);
-                transactionItem.NewInstance = instance ?? (T)Activator.CreateInstance(this.SchemaType);
+                if (instance != null)
+                {
+                    transactionItem.NewInstance = transactionItem.OldInstance;
+                }
+
+                transactionItem.OldInstance = new Bonded<YawnSchema>(new YawnSchema() { Id = -1 });
                 transactionItem.Storage = this;
                 transaction.AddTransactionItem(transactionItem);
                 return this.yawnSite.SaveRecord(transaction as YawnSchema) == null ? false : true;
@@ -273,31 +285,31 @@ namespace YawnDB.Storage.MemStorage
             return locations;
         }
 
-        public bool CommitTransactionItem(ITransactionItem transactionItem)
+        public bool CommitTransactionItem(ITransactionItem transactionItem, IBonded bondedTransactionItem)
         {
             var item = transactionItem as TransactionItem;
             switch (item.ItemAction)
             {
                 case Transactions.TransactionAction.Delete:
-                    return this.DeleteRecord(item.OldInstance);
+                    return this.DeleteRecord(item.OldInstance.Deserialize<T>());
 
                 case Transactions.TransactionAction.Update:
                 case Transactions.TransactionAction.Insert:
-                    return this.SaveRecord(item.NewInstance) == null ? false : true;
+                    return this.SaveRecord(item.NewInstance.Deserialize<T>()) == null ? false : true;
 
                 default:
                     return false;
             }
         }
 
-        public bool RollbackTransactionItem(ITransactionItem transactionItem)
+        public bool RollbackTransactionItem(ITransactionItem transactionItem, IBonded bondedTransactionItem)
         {
             var item = transactionItem as TransactionItem;
             switch (item.ItemAction)
             {
                 case Transactions.TransactionAction.Update:
                 case Transactions.TransactionAction.Insert:
-                    return this.SaveRecord(item.OldInstance) == null ? false : true;
+                    return this.SaveRecord(item.OldInstance.Deserialize<T>()) == null ? false : true;
 
                 case Transactions.TransactionAction.Delete:
                 default:

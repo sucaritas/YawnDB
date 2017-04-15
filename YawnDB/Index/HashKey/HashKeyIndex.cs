@@ -16,7 +16,6 @@ namespace YawnDB.Index.HashKey
     using Bond;
     using Bond.IO.Unsafe;
     using Bond.Protocols;
-    using YawnDB.Interfaces;
     using YawnDB.Storage;
 
     public partial class HashKeyIndex : IIndex

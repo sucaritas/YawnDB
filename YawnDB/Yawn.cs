@@ -11,7 +11,9 @@ namespace YawnDB
     using System.Text;
     using System.Threading.Tasks;
     using YawnDB.Exceptions;
-    using YawnDB.Interfaces;
+    using YawnDB.Index;
+    using YawnDB.Locking;
+    using YawnDB.Storage;
     using YawnDB.Storage.BlockStorage;
     using YawnDB.Transactions;
 
@@ -32,6 +34,8 @@ namespace YawnDB
         public ConcurrentDictionary<Type, IStorage> RegisteredStorageTypes { get; } = new ConcurrentDictionary<Type, IStorage>();
 
         public bool TransactionsEnabled { get; private set; } = false;
+
+        public IRecordLocker RecordLocker { get; private set; } = new RecordLocker();
 
         public bool RegisterSchema<T>() where T : YawnSchema
         {
@@ -173,7 +177,15 @@ namespace YawnDB
 
         public ITransaction CreateTransaction()
         {
-            return new Transaction() { YawnSite = this, State = TransactionState.Created };
+            IStorage storage;
+            if (this.RegisteredStorageTypes.TryGetValue(typeof(Transaction), out storage))
+            {
+                var transaction = storage.CreateRecord() as Transaction;
+                transaction.YawnSite = this;
+                return transaction;
+            }
+
+            return null;
         }
 
         public void ReplayTransactionLog()
@@ -182,7 +194,7 @@ namespace YawnDB
             this.RegisteredStorageTypes.TryGetValue(typeof(Transaction), out transactionStorage);
             foreach (var transaction in transactionStorage.GetAllRecords<Transaction>())
             {
-                if (transaction.State == TransactionState.Commited)
+                if (transaction.State == TransactionState.CommitStarted)
                 {
                     transaction.YawnSite = this;
                     transaction.Commit();
@@ -203,6 +215,62 @@ namespace YawnDB
                     transactionStorage.DeleteRecord(transaction);
                 }
             }
+        }
+
+        public IRecordUnlocker LockRecord<T>(long id, RecordLockType lockType) where T : YawnSchema
+        {
+            return this.RecordLocker.LockRecord(this.GetLockName<T>(id), lockType);
+        }
+
+        public IRecordUnlocker LockRecord(long id, RecordLockType lockType, Type schemaType)
+        {
+            return this.RecordLocker.LockRecord(this.GetTypeName(schemaType) + "_" + id, lockType);
+        }
+
+        public IRecordUnlocker LockRecord(string id, RecordLockType lockType)
+        {
+            return this.RecordLocker.LockRecord(id, lockType);
+        }
+
+        public string GetLockName<T>(long id)
+        {
+            return this.GetLockName(id, typeof(T));
+        }
+
+        public string GetLockName(long id, Type type)
+        {
+            string name = this.GetTypeName(type);
+            return name + "_" + id;
+        }
+
+        private string GetTypeName(Type type)
+        {
+            string name = type.FullName;
+            if (type.IsGenericType)
+            {
+                name += "[";
+                foreach (var arg in type.GetGenericArguments())
+                {
+                    name += this.GetTypeName(arg);
+                }
+
+                name += "]";
+            }
+
+            return name;
+        }
+
+        public T GetRecord<T>(long id) where T : YawnSchema
+        {
+            IStorage storage;
+            if (this.RegisteredStorageTypes.TryGetValue(typeof(T), out storage))
+            {
+                IIndex keyIndex = storage.Indicies["YawnKeyIndex"];
+                IStorageLocation location = keyIndex.GetLocationForInstance(new YawnSchema() { Id = id });
+                return storage.GetRecords<T>(new[] { location }).FirstOrDefault();
+            }
+
+            return default(T);
         }
     }
 }

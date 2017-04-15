@@ -1,7 +1,0 @@
-﻿namespace YawnDB
-
-struct YawnBaseSchema
-{
-    0: int32 Id;
-}
-

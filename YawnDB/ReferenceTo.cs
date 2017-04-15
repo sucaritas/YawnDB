@@ -12,7 +12,7 @@ namespace YawnDB
     using System.Text;
     using System.Threading.Tasks;
     using YawnDB.Exceptions;
-    using YawnDB.Interfaces;
+    using YawnDB.Storage;
 
     public class ReferenceTo<T> : IReferenceTo<T> where T : YawnSchema
     {

@@ -4,8 +4,6 @@
 
 namespace YawnDB.Extensions
 {
-    using YawnDB.Interfaces;
-
     public static class SchemaExtensions
     {
         public static bool Save(this YawnSchema schemaInstance, IYawn database)

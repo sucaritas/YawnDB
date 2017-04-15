@@ -2,14 +2,17 @@
 //  By Julio Cesar Saenz
 // </copyright>
 
-namespace YawnDB.Interfaces
+namespace YawnDB.Transactions
 {
+    using Bond;
+    using YawnDB.Storage;
+
     public interface ITransactionItem
     {
         IStorage Storage { get; set; }
 
-        bool Commit();
+        bool Commit(IBonded bondedTransactionItem);
 
-        bool Rollback();
+        bool Rollback(IBonded bondedTransactionItem);
     }
 }

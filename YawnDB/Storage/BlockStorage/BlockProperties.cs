@@ -33,13 +33,16 @@ namespace YawnDB.Storage.BlockStorage
 
         [FieldOffset(9)]
         public long RecordSize;
+
+        [FieldOffset(17)]
+         public long RecordId;
     }
 
     public static class BlockHelpers
     {
         public static int GetHeaderSize()
         {
-            return 17;
+            return 25;
         }
     }
 

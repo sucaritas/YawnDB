@@ -2,7 +2,7 @@
 //  By Julio Cesar Saenz
 // </copyright>
 
-namespace YawnDB.Interfaces
+namespace YawnDB.Storage
 {
     public interface IStorageLocation
     {

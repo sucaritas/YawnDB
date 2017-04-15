@@ -4,5 +4,6 @@ namespace YawnDB.Storage.BlockStorage
 
 struct BlockStorageLocation : YawnDB.Storage.StorageLocation
 {
-    0: int64 Address;
+    0: int64 Id;
+    1: int64 Address;
 }

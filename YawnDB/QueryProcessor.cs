@@ -5,14 +5,11 @@
 namespace YawnDB
 {
     using System;
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
-    using System.Text;
-    using System.Threading.Tasks;
-    using YawnDB.Interfaces;
+    using YawnDB.Index;
 
     public class QueryProcessor<T> : ExpressionVisitor where T : YawnSchema
     {

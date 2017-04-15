@@ -5,11 +5,11 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 14.0.0.0
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YawnDB", "YawnDB\YawnDB.csproj", "{BA24655F-E374-4D45-B863-C4C2D006E8DA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YawnDB.Interfaces", "YawnDB.Interfaces\YawnDB.Interfaces.csproj", "{56FAD19F-95B5-49AA-9934-197B57ECE3B0}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yawn.DataSchemas", "Yawn.DataSchemas\Yawn.DataSchemas.csproj", "{ADED1921-6DEA-4DCE-A31E-5F915D633124}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YawnDB.Tests", "YawnDB.Tests\YawnDB.Tests.csproj", "{571B56E9-99C1-47F6-8A38-91340134E29C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YawnDB.EventSources", "YawnDB.EventSources\YawnDB.EventSources.csproj", "{5C6CA7F9-9663-40B8-A56A-7BB7ED23B5D2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,10 +21,6 @@ Global
 		{BA24655F-E374-4D45-B863-C4C2D006E8DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BA24655F-E374-4D45-B863-C4C2D006E8DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BA24655F-E374-4D45-B863-C4C2D006E8DA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{56FAD19F-95B5-49AA-9934-197B57ECE3B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{56FAD19F-95B5-49AA-9934-197B57ECE3B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{56FAD19F-95B5-49AA-9934-197B57ECE3B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{56FAD19F-95B5-49AA-9934-197B57ECE3B0}.Release|Any CPU.Build.0 = Release|Any CPU
 		{ADED1921-6DEA-4DCE-A31E-5F915D633124}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{ADED1921-6DEA-4DCE-A31E-5F915D633124}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ADED1921-6DEA-4DCE-A31E-5F915D633124}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -33,6 +29,10 @@ Global
 		{571B56E9-99C1-47F6-8A38-91340134E29C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{571B56E9-99C1-47F6-8A38-91340134E29C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{571B56E9-99C1-47F6-8A38-91340134E29C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C6CA7F9-9663-40B8-A56A-7BB7ED23B5D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C6CA7F9-9663-40B8-A56A-7BB7ED23B5D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C6CA7F9-9663-40B8-A56A-7BB7ED23B5D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C6CA7F9-9663-40B8-A56A-7BB7ED23B5D2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
