@@ -6,32 +6,38 @@ namespace YawnDB.Transactions
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Reflection;
-    using YawnDB.Interfaces;
+    using YawnDB.Locking;
+    using YawnDB.Storage;
 
     public partial class Transaction : YawnSchema, ITransaction
     {
         public IYawn YawnSite { get; set; }
+
+        private List<IRecordUnlocker> recordLocks;
 
         public bool Commit()
         {
             // First record the intent to commit the transaction
             this.State = TransactionState.CommitStarted;
             this.YawnSite.SaveRecord(this);
-            bool commitedOk = true;
-            foreach (var item in this.TransactionItems)
-            {
-                if (item.Storage == null)
-                {
-                    Type schemaType = Type.GetType(item.SchemaType);
-                    IStorage storage;
-                    if (this.YawnSite.RegisteredStorageTypes.TryGetValue(schemaType, out storage))
-                    {
-                        item.Storage = storage;
-                    }
-                }
 
-                commitedOk = item.Commit();
+            // Lock all records in transaction for writing, locks are taken on an alpha ordered way
+            var transactionItems = this.TransactionItems.Select(x => x.Deserialize()).ToArray();
+            this.recordLocks = transactionItems.Select(ti => this.YawnSite.GetLockName(ti.NewInstance.Deserialize().Id, Type.GetType(ti.SchemaType)))
+                                            .OrderBy(ln => ln)
+                                            .ToArray()
+                                            .Select(ln => this.YawnSite.LockRecord(ln, RecordLockType.Write))
+                                            .ToList();
+
+            bool commitedOk = true;
+            foreach (var bondedItem in this.TransactionItems)
+            {
+                var item = bondedItem.Deserialize<TransactionItem>();
+                this.SetStorageOnTransactionItem(ref item);
+
+                commitedOk = item.Commit(bondedItem);
                 if (!commitedOk)
                 {
                     break;
@@ -42,9 +48,10 @@ namespace YawnDB.Transactions
             {
                 this.State = TransactionState.RollBackStarted;
                 this.YawnSite.SaveRecord(this);
-                foreach (var item in this.TransactionItems)
+                foreach (var bondedItem in this.TransactionItems)
                 {
-                    item.Rollback();
+                    var item = bondedItem.Deserialize<TransactionItem>();
+                    item.Rollback(bondedItem);
                 }
 
                 this.State = TransactionState.RolledBack;
@@ -54,6 +61,13 @@ namespace YawnDB.Transactions
 
             this.State = TransactionState.Commited;
             this.YawnSite.SaveRecord(this);
+
+            // Release all locks;
+            foreach (var unlocker in this.recordLocks)
+            {
+                unlocker.Dispose();
+            }
+
             return true;
         }
 
@@ -62,9 +76,11 @@ namespace YawnDB.Transactions
             this.State = TransactionState.RollBackStarted;
             this.YawnSite.SaveRecord(this);
 
-            foreach (var item in this.TransactionItems)
+            foreach (var bondedItem in this.TransactionItems)
             {
-                item.Rollback();
+                var item = bondedItem.Deserialize<TransactionItem>();
+                this.SetStorageOnTransactionItem(ref item);
+                item.Rollback(bondedItem);
             }
 
             this.State = TransactionState.RolledBack;
@@ -82,9 +98,22 @@ namespace YawnDB.Transactions
             return false;
         }
 
-        public void AddTransactionItem(ITransactionItem transactionItem)
+        public void AddTransactionItem<T>(T transactionItem) where T : TransactionItem
         {
-            this.TransactionItems.AddLast(transactionItem as TransactionItem);
+            this.TransactionItems.AddLast(new Bond.Bonded<T>(transactionItem));
+        }
+
+        private void SetStorageOnTransactionItem(ref TransactionItem item)
+        {
+            if (item.Storage == null)
+            {
+                Type schemaType = Type.GetType(item.SchemaType);
+                IStorage storage;
+                if (this.YawnSite.RegisteredStorageTypes.TryGetValue(schemaType, out storage))
+                {
+                    item.Storage = storage;
+                }
+            }
         }
 
         #region IDisposable Support

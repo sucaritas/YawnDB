@@ -97,10 +97,6 @@
       <Project>{aded1921-6dea-4dce-a31e-5f915d633124}</Project>
       <Name>Yawn.DataSchemas</Name>
     </ProjectReference>
-    <ProjectReference Include="..\YawnDB.Interfaces\YawnDB.Interfaces.csproj">
-      <Project>{56fad19f-95b5-49aa-9934-197b57ece3b0}</Project>
-      <Name>YawnDB.Interfaces</Name>
-    </ProjectReference>
     <ProjectReference Include="..\YawnDB\YawnDB.csproj">
       <Project>{ba24655f-e374-4d45-b863-c4c2d006e8da}</Project>
       <Name>YawnDB</Name>

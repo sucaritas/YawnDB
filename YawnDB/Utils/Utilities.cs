@@ -13,7 +13,7 @@ namespace YawnDB.Utils
     using Bond;
     using Bond.IO.Unsafe;
     using Bond.Protocols;
-    using YawnDB.Interfaces;
+    using YawnDB.Index;
 
     public static class Utilities
     {

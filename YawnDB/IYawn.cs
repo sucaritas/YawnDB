@@ -2,7 +2,7 @@
 //  By Julio Cesar Saenz
 // </copyright>
 
-namespace YawnDB.Interfaces
+namespace YawnDB
 {
     using System;
     using System.Collections.Concurrent;
@@ -11,6 +11,8 @@ namespace YawnDB.Interfaces
     using System.Text;
     using System.Threading.Tasks;
     using YawnDB.Locking;
+    using YawnDB.Storage;
+    using YawnDB.Transactions;
 
     public interface IYawn
     {
@@ -53,5 +55,15 @@ namespace YawnDB.Interfaces
         bool DeleteRecord(YawnSchema instance, ITransaction transaction);
 
         T GetRecord<T>(long id) where T : YawnSchema;
+
+        IRecordUnlocker LockRecord<T>(long id, RecordLockType lockType) where T : YawnSchema;
+
+        IRecordUnlocker LockRecord(long id, RecordLockType lockType, Type schemaType);
+
+        IRecordUnlocker LockRecord(string id, RecordLockType lockType);
+
+        string GetLockName<T>(long id);
+
+        string GetLockName(long id, Type type);
     }
 }

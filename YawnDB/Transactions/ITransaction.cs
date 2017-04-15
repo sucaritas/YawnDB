@@ -2,10 +2,11 @@
 //  By Julio Cesar Saenz
 // </copyright>
 
-namespace YawnDB.Interfaces
+namespace YawnDB.Transactions
 {
     using System;
     using System.Collections.Generic;
+    using YawnDB.Storage;
 
     public interface ITransaction : IDisposable
     {
@@ -19,6 +20,6 @@ namespace YawnDB.Interfaces
 
         bool DeleteRecord(YawnSchema instance);
 
-        void AddTransactionItem(ITransactionItem transactionItem);
+        void AddTransactionItem<T>(T transactionItem) where T : TransactionItem;
     }
 }

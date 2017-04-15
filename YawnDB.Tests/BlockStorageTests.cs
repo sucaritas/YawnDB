@@ -6,7 +6,6 @@
     using System.Linq;
     using System.Threading.Tasks;
     using NUnit.Framework;
-    using YawnDB.Interfaces;
     using YawnDB.Storage.BlockStorage;
     using YawnDB.Testing;
     using YawnDB.Exceptions;
@@ -27,7 +26,7 @@
         [TestCase]
         public void StartBlockStoreageEmptyTest()
         {
-            var dbName = nameof(StartBlockStoreageEmptyTest);
+            var dbName = NUnit.Framework.TestContext.CurrentContext.Test.Name;
             var bufferBlocks = 10;
             var blockSize = 128;
             var path = Path.Combine(basePath, dbName);
@@ -46,7 +45,7 @@
         [TestCase]
         public void WriteReadRecorTest()
         {
-            var dbName = nameof(WriteReadRecorTest);
+            var dbName = NUnit.Framework.TestContext.CurrentContext.Test.Name;
             var bufferBlocks = 10;
             var blockSize = 128;
             var path = Path.Combine(basePath, dbName);
@@ -72,7 +71,7 @@
         [TestCase]
         public void WriteRecorOnClosedStorageTest()
         {
-            var dbName = nameof(WriteRecorOnClosedStorageTest);
+            var dbName = NUnit.Framework.TestContext.CurrentContext.Test.Name;
             var bufferBlocks = 10;
             var blockSize = 128;
             var path = Path.Combine(basePath, dbName);
@@ -101,7 +100,7 @@
         [TestCase]
         public void ReadRecorOnClosedStorageTest()
         {
-            var dbName = nameof(ReadRecorOnClosedStorageTest);
+            var dbName = NUnit.Framework.TestContext.CurrentContext.Test.Name;
             var bufferBlocks = 10;
             var blockSize = 128;
             var path = Path.Combine(basePath, dbName);
@@ -131,7 +130,7 @@
         [TestCase]
         public void WriteInParallelRecorTest()
         {
-            var dbName = "WriteInParallelRecorTest";
+            var dbName = NUnit.Framework.TestContext.CurrentContext.Test.Name;
             var bufferBlocks = 100;
             var blockSize = 128;
             var path = Path.Combine(basePath, dbName);
@@ -167,8 +166,8 @@
         [TestCase]
         public void UpdateInParallelRecorTest()
         {
-            var dbName = nameof(UpdateInParallelRecorTest);
-            var bufferBlocks = 100000;
+            var dbName = NUnit.Framework.TestContext.CurrentContext.Test.Name;
+            var bufferBlocks = 100;
             var blockSize = 128;
             var path = Path.Combine(basePath, dbName);
             SetupTestDirectory(path);
@@ -181,8 +180,8 @@
             FileInfo info = new FileInfo($"{path}\\YawnDB.Testing.Person\\YawnDB.Testing.Person.ydb");
             Assert.AreEqual(blockSize * bufferBlocks, info.Length);
 
-            var noThreads = 100;
-            var noOperationsPerThread = 10000;
+            var noThreads = 10;
+            var noOperationsPerThread = 1000;
             var noOfRecords = 10;
             Task[] threads = new Task[noThreads];
             for (int i = 0; i < noOfRecords; i++)
@@ -219,7 +218,7 @@
         [TestCase]
         public void ItemExistsOnInsert()
         {
-            var dbName = nameof(ItemExistsOnInsert);
+            var dbName = NUnit.Framework.TestContext.CurrentContext.Test.Name;
             var bufferBlocks = 10;
             var blockSize = 128;
             var path = Path.Combine(basePath, dbName);
@@ -238,7 +237,7 @@
         [TestCase]
         public void ItemDoesNotExistsOnDelete()
         {
-            var dbName = nameof(ItemDoesNotExistsOnDelete);
+            var dbName = NUnit.Framework.TestContext.CurrentContext.Test.Name;
             var bufferBlocks = 10;
             var blockSize = 128;
             var path = Path.Combine(basePath, dbName);
@@ -258,7 +257,7 @@
         [TestCase]
         public void OneItemExistsAfterRecordUpdate()
         {
-            var dbName = nameof(OneItemExistsAfterRecordUpdate);
+            var dbName = NUnit.Framework.TestContext.CurrentContext.Test.Name;
             var bufferBlocks = 10;
             var blockSize = 128;
             var path = Path.Combine(basePath, dbName);

@@ -5,7 +5,7 @@
 namespace YawnDB.Index
 {
     using System.Collections.Generic;
-    using YawnDB.Interfaces;
+    using YawnDB.Storage;
 
     public class IndexParameters : IIdexArguments
     {

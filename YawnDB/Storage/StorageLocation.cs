@@ -4,7 +4,7 @@
 
 namespace YawnDB.Storage
 {
-    public partial class StorageLocation : YawnDB.Interfaces.IStorageLocation
+    public partial class StorageLocation : YawnDB.Storage.IStorageLocation
     {
     }
 }

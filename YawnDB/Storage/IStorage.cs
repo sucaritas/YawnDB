@@ -2,13 +2,16 @@
 //  By Julio Cesar Saenz
 // </copyright>
 
-namespace YawnDB.Interfaces
+namespace YawnDB.Storage
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+    using Bond;
+    using YawnDB.Index;
+    using YawnDB.Transactions;
 
     public interface IStorage
     {
@@ -46,8 +49,8 @@ namespace YawnDB.Interfaces
 
         void ReIndexStorage(IList<IIndex> needReindexing);
 
-        bool CommitTransactionItem(ITransactionItem transactionItem);
+        bool CommitTransactionItem(ITransactionItem transactionItem, IBonded bondedTransactionItem);
 
-        bool RollbackTransactionItem(ITransactionItem transactionItem);
+        bool RollbackTransactionItem(ITransactionItem transactionItem, IBonded bondedTransactionItem);
     }
 }

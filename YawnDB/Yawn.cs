@@ -11,8 +11,9 @@ namespace YawnDB
     using System.Text;
     using System.Threading.Tasks;
     using YawnDB.Exceptions;
-    using YawnDB.Interfaces;
+    using YawnDB.Index;
     using YawnDB.Locking;
+    using YawnDB.Storage;
     using YawnDB.Storage.BlockStorage;
     using YawnDB.Transactions;
 
@@ -176,7 +177,15 @@ namespace YawnDB
 
         public ITransaction CreateTransaction()
         {
-            return new Transaction() { YawnSite = this, State = TransactionState.Created };
+            IStorage storage;
+            if (this.RegisteredStorageTypes.TryGetValue(typeof(Transaction), out storage))
+            {
+                var transaction = storage.CreateRecord() as Transaction;
+                transaction.YawnSite = this;
+                return transaction;
+            }
+
+            return null;
         }
 
         public void ReplayTransactionLog()
@@ -185,7 +194,7 @@ namespace YawnDB
             this.RegisteredStorageTypes.TryGetValue(typeof(Transaction), out transactionStorage);
             foreach (var transaction in transactionStorage.GetAllRecords<Transaction>())
             {
-                if (transaction.State == TransactionState.Commited)
+                if (transaction.State == TransactionState.CommitStarted)
                 {
                     transaction.YawnSite = this;
                     transaction.Commit();
@@ -208,14 +217,28 @@ namespace YawnDB
             }
         }
 
-        public IRecordUnlocker LockRecord<T>(long id, RecordLockType lockType)
+        public IRecordUnlocker LockRecord<T>(long id, RecordLockType lockType) where T : YawnSchema
         {
             return this.RecordLocker.LockRecord(this.GetLockName<T>(id), lockType);
         }
 
-        private string GetLockName<T>(long id)
+        public IRecordUnlocker LockRecord(long id, RecordLockType lockType, Type schemaType)
         {
-            var type = typeof(T);
+            return this.RecordLocker.LockRecord(this.GetTypeName(schemaType) + "_" + id, lockType);
+        }
+
+        public IRecordUnlocker LockRecord(string id, RecordLockType lockType)
+        {
+            return this.RecordLocker.LockRecord(id, lockType);
+        }
+
+        public string GetLockName<T>(long id)
+        {
+            return this.GetLockName(id, typeof(T));
+        }
+
+        public string GetLockName(long id, Type type)
+        {
             string name = this.GetTypeName(type);
             return name + "_" + id;
         }

@@ -6,5 +6,5 @@ namespace YawnDB.Transactions
 struct Transaction
 {
     10: TransactionState State = Created;
-    20: list<TransactionItem> TransactionItems;
+    20: list<bonded<TransactionItem>> TransactionItems;
 }

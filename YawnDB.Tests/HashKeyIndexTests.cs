@@ -5,7 +5,7 @@
     using System.Collections.Generic;
     using System.IO;
     using NUnit.Framework;
-    using YawnDB.Interfaces;
+    using YawnDB.Storage;
     using YawnDB.Storage.BlockStorage;
     using YawnDB.Testing;
     using YawnDB.Exceptions;

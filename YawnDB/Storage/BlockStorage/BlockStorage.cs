@@ -14,9 +14,11 @@ namespace YawnDB.Storage.BlockStorage
     ║ ┌───────────────────┬──────────────────────┐ ─┐               ║  │
     ║ │ BlockProperties   │ 1 Byte (1bit flags)  │  │               ║  │
     ║ ├───────────────────┼──────────────────────┤  │               ║  │
-    ║ │ NextBlockLocation │ 8 Bytes (1 long int) │  ╞══ 17 bytes    ║  │
+    ║ │ NextBlockLocation │ 8 Bytes (1 long int) │  ╞══ 25 bytes    ║  │
     ║ ├───────────────────┼──────────────────────┤  │   Header size ║  │
-    ║ │ RecordSize        │ 8 Bytes (1 long int) │  │               ║  ╞══ Block Size
+    ║ │ RecordSize        │ 8 Bytes (1 long int) │  │               ║  │
+    ║ ├───────────────────┼──────────────────────┤  │               ║  │
+    ║ │ RecordId          │ 8 Bytes (1 long int) │  │               ║  ╞══ Block Size
     ║ └───────────────────┴──────────────────────┘ ─┘               ║  │
     ║ Bits in block                                                 ║  │
     ║ ┌──────────────────────────────────────────┐                  ║  │
@@ -41,8 +43,10 @@ namespace YawnDB.Storage.BlockStorage
     using Bond.Protocols;
     using YawnDB.EventSources;
     using YawnDB.Exceptions;
-    using YawnDB.Interfaces;
+    using YawnDB.Index;
     using YawnDB.PerformanceCounters;
+    using YawnDB.Storage;
+    using YawnDB.Transactions;
     using YawnDB.Utils;
 
     public class BlockStorage<T> : IStorage, IDisposable where T : YawnSchema
@@ -218,8 +222,9 @@ namespace YawnDB.Storage.BlockStorage
                 throw new DatabaseTransactionsAreDisabled();
             }
 
-            // var lck = this.GetRecordLockName(this.SchemaType) + "_" + inputInstance.Id;
-            // this.yawnSite.RecordLocker.WaitForRecordLock(lck, Locking.RecordLockType.Write);
+            var lck = this.GetRecordLockName(this.SchemaType) + "_" + inputInstance.Id;
+            this.yawnSite.RecordLocker.WaitForRecordLock(lck, Locking.RecordLockType.Write);
+
             StorageEventSource.Log.RecordWriteStart(this.FullStorageName, inputInstance.Id);
             this.perfCounters.RecordWriteStartCounter.Increment();
             var isTransaction = transaction != null;
@@ -267,7 +272,8 @@ namespace YawnDB.Storage.BlockStorage
                     {
                         BlockProperties = blockProperties,
                         NextBlockLocation = 0,
-                        RecordSize = recordSize
+                        RecordSize = recordSize,
+                        RecordId = instance.Id,
                     },
                     Address = addresses[i],
                     BlockBytes = output.Data.Array.Skip(i * realBlockSize).Take(realBlockSize).ToArray()
@@ -294,9 +300,16 @@ namespace YawnDB.Storage.BlockStorage
                 transactionItem.ItemAction = Transactions.TransactionAction.Update;
                 transactionItem.SchemaType = this.SchemaType.AssemblyQualifiedName;
                 transactionItem.OriginalAddresses = new LinkedList<long>(existingAddresses);
-                transactionItem.OldInstance = existingInstance ?? (T)Activator.CreateInstance(this.SchemaType);
-                transactionItem.OldInstance.Id = existingInstance?.Id ?? -1;
-                transactionItem.NewInstance = instance ?? (T)Activator.CreateInstance(this.SchemaType);
+                if (existingInstance != null)
+                {
+                    transactionItem.OldInstance = new Bonded<T>(existingInstance);
+                }
+                else
+                {
+                    transactionItem.OldInstance = new Bonded<YawnSchema>(new YawnSchema() { Id = -1 });
+                }
+
+                transactionItem.NewInstance = new Bonded<T>(instance);
                 transactionItem.BlockAddresses = new LinkedList<long>(addresses);
                 transactionItem.Storage = this;
                 transaction.AddTransactionItem(transactionItem);
@@ -349,14 +362,17 @@ namespace YawnDB.Storage.BlockStorage
             return this.SaveRecord(inputInstance, null);
         }
 
-        public bool CommitSave(ITransactionItem transactionItem)
+        public bool CommitSave(BlockTransactionItem transactionItem)
         {
-            var item = transactionItem as BlockTransactionItem;
+            var item = transactionItem;
+            var newInstance = item.NewInstance.Deserialize<T>();
+            var oldYawnInstance = item.OldInstance.Deserialize();
+            var oldInstance = item.OldInstance.Deserialize<T>();
+            var lck = this.GetRecordLockName(this.SchemaType) + "_" + newInstance.Id;
+            this.yawnSite.RecordLocker.WaitForRecordLock(lck, Locking.RecordLockType.Read);
 
-            // var lck = this.GetRecordLockName(this.SchemaType) + "_" + item.NewInstance.Id;
-            // this.yawnSite.RecordLocker.WaitForRecordLock(lck, Locking.RecordLockType.Read);
             // Commit the blocks
-            using (var unlocker = new StorageUnlocker(this.recordLocker.LockRecord(item.NewInstance.Id, this.resizeLock), this.recordLocker))
+            using (var unlocker = new StorageUnlocker(this.recordLocker.LockRecord(newInstance.Id, this.resizeLock), this.recordLocker))
             {
                 foreach (var address in item.BlockAddresses)
                 {
@@ -372,35 +388,35 @@ namespace YawnDB.Storage.BlockStorage
                 }
             }
 
-            var location = new BlockStorageLocation() { Id = item.NewInstance.Id, Address = item.BlockAddresses.First() };
-            if (item.OldInstance.Id != -1)
+            var location = new BlockStorageLocation() { Id = newInstance.Id, Address = item.BlockAddresses.First() };
+            if (newInstance.Id != -1)
             {
                 // We dont remove the old instance from the cache as there may be some queries that are still pending to pull it
                 // We opt to redirect the old cahce location to the new instance and set it to expire in 5 min.
                 // 5 min. should be engough to to drain any query.
-                this.cache.Set(item.OldInstance.Id.ToString(), item.NewInstance, new CacheItemPolicy()
+                this.cache.Set(oldInstance.Id.ToString(), newInstance, new CacheItemPolicy()
                 {
                     AbsoluteExpiration = DateTimeOffset.Now.ToOffset(new TimeSpan(0, 5, 0))
                 });
             }
 
-            this.cache.Set(item.NewInstance.Id.ToString(), item.NewInstance, new CacheItemPolicy());
+            this.cache.Set(newInstance.Id.ToString(), newInstance, new CacheItemPolicy());
 
             // Get existing adress for deletion
-            if (item.OldInstance.Id != -1)
+            if (oldYawnInstance.Id != -1)
             {
                 bool commitOk;
                 var keyIndex = this.Indicies["YawnKeyIndex"];
-                var existingLocation = keyIndex.GetLocationForInstance(item.OldInstance) as BlockStorageLocation;
+                var existingLocation = keyIndex.GetLocationForInstance(oldInstance) as BlockStorageLocation;
                 if (existingLocation != null)
                 {
                     StorageSyncLockCounter recordLock;
-                    lock (recordLock = this.recordLocker.LockRecord(item.OldInstance.Id, this.resizeLock))
+                    lock (recordLock = this.recordLocker.LockRecord(oldInstance.Id, this.resizeLock))
                     {
                         using (var unlocker = new StorageUnlocker(recordLock, this.recordLocker))
                         {
                             List<long> existingAddress = this.GetRecordBlockAddresses(existingLocation);
-                            commitOk = existingAddress.Select(x => this.FreeBlock(x, item.OldInstance.Id)).Any(x => x == false);
+                            commitOk = existingAddress.Select(x => this.FreeBlock(x, oldInstance.Id)).Any(x => x == false);
                         }
                     }
 
@@ -411,39 +427,42 @@ namespace YawnDB.Storage.BlockStorage
                 }
             }
 
-            this.UpdateIndeciesForInstance(item.OldInstance, item.NewInstance, location as StorageLocation);
-            StorageEventSource.Log.RecordWriteFinish(this.FullStorageName, item.NewInstance.Id);
+            this.UpdateIndeciesForInstance(oldInstance, newInstance, location as StorageLocation);
+            StorageEventSource.Log.RecordWriteFinish(this.FullStorageName, newInstance.Id);
             return true;
         }
 
-        public bool RollbackSave(ITransactionItem transactionItem)
+        public bool RollbackSave(BlockTransactionItem transactionItem)
         {
             // Rollback the new blocks
-            var item = transactionItem as BlockTransactionItem;
+            var item = transactionItem;
             bool rolledBackOk;
+            var newInstance = item.NewInstance.Deserialize<T>();
+            var oldYawnInstance = item.OldInstance.Deserialize();
+            var oldInstance = item.OldInstance.Deserialize<T>();
 
-            this.cache.Remove(item.NewInstance.Id.ToString());
+            this.cache.Remove(newInstance.Id.ToString());
             StorageSyncLockCounter lck;
-            lock (lck = this.recordLocker.LockRecord(item.NewInstance.Id, this.resizeLock))
+            lock (lck = this.recordLocker.LockRecord(newInstance.Id, this.resizeLock))
             {
                 using (var unlocker = new StorageUnlocker(lck, this.recordLocker))
                 {
-                    rolledBackOk = item.BlockAddresses.Select(x => this.FreeBlock(x, item.NewInstance.Id)).Any(x => x == false);
+                    rolledBackOk = item.BlockAddresses.Select(x => this.FreeBlock(x, newInstance.Id)).Any(x => x == false);
                 }
             }
 
-            if (item.OldInstance.Id != -1)
+            if (oldYawnInstance.Id != -1)
             {
-                using (var unlocker = new StorageUnlocker(this.recordLocker.LockRecord(item.OldInstance.Id, this.resizeLock), this.recordLocker))
+                using (var unlocker = new StorageUnlocker(this.recordLocker.LockRecord(oldInstance.Id, this.resizeLock), this.recordLocker))
                 {
-                    this.SaveRecord(item.OldInstance);
+                    this.SaveRecord(oldInstance);
                 }
 
-                this.cache.Set(item.OldInstance.Id.ToString(), item.OldInstance, new CacheItemPolicy()
+                this.cache.Set(oldInstance.Id.ToString(), oldInstance, new CacheItemPolicy()
                 {
-                    AbsoluteExpiration = new DateTimeOffset(DateTime.Now, new TimeSpan(0, 5, 0))
+                    AbsoluteExpiration = new DateTimeOffset(DateTimeOffset.Now.Ticks, new TimeSpan(0, 5, 0))
                 });
-                this.UpdateIndeciesForInstance(item.NewInstance, item.OldInstance, new BlockStorageLocation() { Id = item.OldInstance.Id, Address = item.OriginalAddresses.First() });
+                this.UpdateIndeciesForInstance(newInstance, oldInstance, new BlockStorageLocation() { Id = oldInstance.Id, Address = item.OriginalAddresses.First() });
             }
 
             return true;
@@ -455,7 +474,15 @@ namespace YawnDB.Storage.BlockStorage
             {
                 using (var mapAccessor = this.mappedFile.CreateViewAccessor(blockLocation, this.BlockSize))
                 {
-                    var header = new BlockHeader() { BlockProperties = 0, NextBlockLocation = 0, RecordSize = 0 };
+                    // Make sure we are freing a block related to the record id. if not skip
+                    BlockHeader header;
+                    mapAccessor.Read<BlockHeader>(0, out header);
+                    if (header.RecordId == id)
+                    {
+                        return false;
+                    }
+
+                    header = new BlockHeader() { BlockProperties = 0, NextBlockLocation = 0, RecordSize = 0, RecordId = 0, };
                     var headerSize = BlockHelpers.GetHeaderSize();
                     mapAccessor.Write<BlockHeader>(0, ref header);
                     mapAccessor.Flush();
@@ -539,7 +566,6 @@ namespace YawnDB.Storage.BlockStorage
             // Therefore we must be mutualy exclusive form all reads and writes
             lock (this.resizeLock) // <--this lock says no new friends (no new readers/writers)
             {
-
                 this.recordLocker.WaitForAllReaders();
 
                 // TODO: GARBAGE COLLECT FREE BLOCKS HERE
@@ -606,11 +632,12 @@ namespace YawnDB.Storage.BlockStorage
             var cacheInstance = this.cache.Get(blockStorageLocation.Id.ToString());
             if (cacheInstance != null)
             {
-                // var lck = this.GetRecordLockName(this.SchemaType) + "_" + (cacheInstance as T)?.Id;
-                // if (this.yawnSite.RecordLocker.WaitForRecordLock(lck, Locking.RecordLockType.Read))
-                // {
-                //     goto ReadRecord;
-                // }
+                var lck = this.GetRecordLockName(this.SchemaType) + "_" + (cacheInstance as T)?.Id;
+                if (this.yawnSite.RecordLocker.WaitForRecordLock(lck, Locking.RecordLockType.Read))
+                {
+                    cacheInstance = this.cache.Get(blockStorageLocation.Id.ToString());
+                }
+
                 StorageEventSource.Log.RecordReadFromCahe(this.FullStorageName, (cacheInstance as T).Id);
                 this.perfCounters.RecordReadFromCacheCounter.Increment();
                 return this.cloner.Clone<T>(cacheInstance as T);
@@ -648,11 +675,12 @@ namespace YawnDB.Storage.BlockStorage
             var reader = new CompactBinaryReader<InputBuffer>(input);
             T instance = this.schemaDeserializer.Deserialize<T>(reader);
 
-            // var lockName = this.GetRecordLockName(this.SchemaType) + "_" + instance.Id;
-            // if (this.yawnSite.RecordLocker.WaitForRecordLock(lockName, Locking.RecordLockType.Read))
-            // {
-            //     goto ReadRecord;
-            // }
+            var lockName = this.GetRecordLockName(this.SchemaType) + "_" + instance.Id;
+            if (this.yawnSite.RecordLocker.WaitForRecordLock(lockName, Locking.RecordLockType.Read))
+            {
+                instance = this.ReadRecord(fromLocation);
+            }
+
             this.cache.Set(instance.Id.ToString(), instance, new CacheItemPolicy());
             StorageEventSource.Log.RecordSerializeFinish(this.FullStorageName, blockStorageLocation.Address);
             this.perfCounters.RecordWriteFinishedCounter.Increment();
@@ -729,9 +757,12 @@ namespace YawnDB.Storage.BlockStorage
             var transactionItem = new BlockTransactionItem();
             transactionItem.SchemaType = this.SchemaType.AssemblyQualifiedName;
             transactionItem.OriginalAddresses = new LinkedList<long>(existingAddresses);
-            transactionItem.OldInstance = instance ?? (T)Activator.CreateInstance(this.SchemaType);
-            transactionItem.OldInstance.Id = instance?.Id ?? -1;
-            transactionItem.NewInstance = instance ?? (T)Activator.CreateInstance(this.SchemaType);
+            if (instance != null)
+            {
+                transactionItem.NewInstance = new Bonded<T>(instance as T);
+            }
+
+            transactionItem.OldInstance = new Bonded<YawnSchema>(new YawnSchema() { Id = -1 });
             transactionItem.ItemAction = Transactions.TransactionAction.Delete;
             transactionItem.Storage = this;
             transaction.AddTransactionItem(transactionItem);
@@ -741,6 +772,9 @@ namespace YawnDB.Storage.BlockStorage
 
         public bool DeleteRecord(YawnSchema instance)
         {
+            var lck = this.GetRecordLockName(this.SchemaType) + "_" + instance.Id;
+            this.yawnSite.RecordLocker.WaitForRecordLock(lck, Locking.RecordLockType.Write);
+
             StorageEventSource.Log.RecordDeleteStart(this.FullStorageName, instance.Id);
             this.perfCounters.RecordDeleteStartCounter.Increment();
             long firstLocation = this.GetExistingAddress(instance);
@@ -752,10 +786,10 @@ namespace YawnDB.Storage.BlockStorage
             long location = firstLocation;
             bool lastBlock = false;
             var blankHeader = default(BlockHeader);
-            StorageSyncLockCounter lck;
-            lock (lck = this.recordLocker.LockRecord(instance.Id, this.resizeLock))
+            StorageSyncLockCounter recordLock;
+            lock (recordLock = this.recordLocker.LockRecord(instance.Id, this.resizeLock))
             {
-                using (var unlocker = new StorageUnlocker(lck, this.recordLocker))
+                using (var unlocker = new StorageUnlocker(recordLock, this.recordLocker))
                 {
                     while (!lastBlock)
                     {
@@ -763,6 +797,11 @@ namespace YawnDB.Storage.BlockStorage
                         {
                             BlockHeader header;
                             mapAccessor.Read<BlockHeader>(0, out header);
+                            if (header.RecordId != instance.Id)
+                            {
+                                return false;
+                            }
+
                             lastBlock = (header.BlockProperties & BlockProperties.IsLastBlockInRecord) != 0;
                             mapAccessor.Write<BlockHeader>(0, ref blankHeader);
 
@@ -854,31 +893,34 @@ namespace YawnDB.Storage.BlockStorage
             return locations;
         }
 
-        public bool CommitTransactionItem(ITransactionItem transactionItem)
+        public bool CommitTransactionItem(ITransactionItem transactionItem, IBonded bondedTransactionItem)
         {
-            var item = transactionItem as BlockTransactionItem;
+            var item = bondedTransactionItem.Deserialize<BlockTransactionItem>();
+            item.Storage = transactionItem.Storage;
             switch (item.ItemAction)
             {
                 case Transactions.TransactionAction.Delete:
-                    return this.DeleteRecord(item.OldInstance);
+                    return this.DeleteRecord(item.NewInstance.Deserialize<T>());
 
                 case Transactions.TransactionAction.Update:
                 case Transactions.TransactionAction.Insert:
-                    return this.CommitSave(transactionItem);
+                    return this.CommitSave(item);
 
                 default:
                     return false;
             }
         }
 
-        public bool RollbackTransactionItem(ITransactionItem transactionItem)
+        public bool RollbackTransactionItem(ITransactionItem transactionItem, IBonded bondedTransactionItem)
         {
-            var item = transactionItem as BlockTransactionItem;
+            var item = bondedTransactionItem.Deserialize<BlockTransactionItem>();
+
+            item.Storage = transactionItem.Storage;
             switch (item.ItemAction)
             {
                 case Transactions.TransactionAction.Update:
                 case Transactions.TransactionAction.Insert:
-                    return this.RollbackSave(transactionItem);
+                    return this.RollbackSave(item);
 
                 // since delete did nothing on disk simply ignore
                 case Transactions.TransactionAction.Delete:

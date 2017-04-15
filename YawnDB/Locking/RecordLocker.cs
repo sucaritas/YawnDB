@@ -65,26 +65,32 @@ namespace YawnDB.Locking
 
             if (this.locks.TryGetValue(id, out mylock))
             {
-                if ((lockType & RecordLockType.Read) == RecordLockType.Read && Monitor.TryEnter(mylock.Reader))
+                if ((lockType & RecordLockType.Read) == RecordLockType.Read)
                 {
-                    Monitor.Exit(mylock.Reader);
-                }
-                else
-                {
-                    Monitor.Enter(mylock.Reader);
-                    Monitor.Exit(mylock.Reader);
-                    hadToWait = true;
+                    if (Monitor.TryEnter(mylock.Reader))
+                    {
+                        Monitor.Exit(mylock.Reader);
+                    }
+                    else
+                    {
+                        Monitor.Enter(mylock.Reader);
+                        Monitor.Exit(mylock.Reader);
+                        hadToWait = true;
+                    }
                 }
 
-                if ((lockType & RecordLockType.Write) == RecordLockType.Write && Monitor.TryEnter(mylock.Writer))
+                if ((lockType & RecordLockType.Write) == RecordLockType.Write)
                 {
-                    Monitor.Exit(mylock.Writer);
-                }
-                else
-                {
-                    Monitor.Enter(mylock.Writer);
-                    Monitor.Exit(mylock.Writer);
-                    hadToWait = true;
+                    if (Monitor.TryEnter(mylock.Writer))
+                    {
+                        Monitor.Exit(mylock.Writer);
+                    }
+                    else
+                    {
+                        Monitor.Enter(mylock.Writer);
+                        Monitor.Exit(mylock.Writer);
+                        hadToWait = true;
+                    }
                 }
             }
 

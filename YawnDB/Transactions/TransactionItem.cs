@@ -6,26 +6,27 @@ namespace YawnDB.Transactions
 {
     using System;
     using System.Collections.Generic;
-    using YawnDB.Interfaces;
+    using Bond;
+    using YawnDB.Storage;
 
     public partial class TransactionItem : ITransactionItem
     {
         public IStorage Storage { get; set; }
 
         [global::Bond.Id(23)]
-        public YawnSchema OldInstance { get; set; } = new YawnSchema();
+        public IBonded<YawnSchema> OldInstance { get; set; } = new Bonded<YawnSchema>(new YawnSchema() { Id = -1 });
 
         [global::Bond.Id(24)]
-        public YawnSchema NewInstance { get; set; } = new YawnSchema();
+        public IBonded<YawnSchema> NewInstance { get; set; } = new Bonded<YawnSchema>(new YawnSchema() { Id = -1 });
 
-        public bool Commit()
+        public bool Commit(IBonded bondedTransactionItem)
         {
-            return this.Storage.CommitTransactionItem(this);
+            return this.Storage.CommitTransactionItem(this, bondedTransactionItem);
         }
 
-        public bool Rollback()
+        public bool Rollback(IBonded bondedTransactionItem)
         {
-            return this.Storage.RollbackTransactionItem(this);
+            return this.Storage.RollbackTransactionItem(this, bondedTransactionItem);
         }
     }
 }

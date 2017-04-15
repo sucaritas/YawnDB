@@ -6,7 +6,7 @@
     using System.Text;
     using System.Threading.Tasks;
     using YawnDB;
-    using YawnDB.Interfaces;
+    using YawnDB.Storage;
     using YawnDB.Testing;
     using YawnDB.Transactions;
 

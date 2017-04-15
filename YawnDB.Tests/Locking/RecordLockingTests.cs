@@ -23,7 +23,7 @@
         [TestCase]
         public void LockRecordsReadOnly()
         {
-            var dbName = nameof(LockRecordsReadOnly);
+            var dbName = NUnit.Framework.TestContext.CurrentContext.Test.Name;
             var path = Path.Combine(basePath, dbName);
             SetupTestDirectory(path);
             var yawnDB = new Yawn(dbName, path);
@@ -57,7 +57,7 @@
         [TestCase]
         public void LockRecordsWriteOnly()
         {
-            var dbName = nameof(LockRecordsReadOnly);
+            var dbName = NUnit.Framework.TestContext.CurrentContext.Test.Name;
             var path = Path.Combine(basePath, dbName);
             SetupTestDirectory(path);
             var yawnDB = new Yawn(dbName, path);
@@ -91,7 +91,7 @@
         [TestCase]
         public void LockRecordsWritesDontBlockReads()
         {
-            var dbName = nameof(LockRecordsReadOnly);
+            var dbName = NUnit.Framework.TestContext.CurrentContext.Test.Name;
             var path = Path.Combine(basePath, dbName);
             SetupTestDirectory(path);
             var yawnDB = new Yawn(dbName, path);
@@ -114,7 +114,7 @@
         [TestCase]
         public void LockRecordsReadsDontBlockWrites()
         {
-            var dbName = nameof(LockRecordsReadOnly);
+            var dbName = NUnit.Framework.TestContext.CurrentContext.Test.Name;
             var path = Path.Combine(basePath, dbName);
             SetupTestDirectory(path);
             var yawnDB = new Yawn(dbName, path);

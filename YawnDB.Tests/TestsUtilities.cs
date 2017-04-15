@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.IO;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
-    using YawnDB.Interfaces;
+    using YawnDB.Storage;
     using YawnDB.Storage.BlockStorage;
     using YawnDB.Testing;
     using YawnDB.Exceptions;
