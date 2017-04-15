@@ -180,8 +180,8 @@
             FileInfo info = new FileInfo($"{path}\\YawnDB.Testing.Person\\YawnDB.Testing.Person.ydb");
             Assert.AreEqual(blockSize * bufferBlocks, info.Length);
 
-            var noThreads = 10;
-            var noOperationsPerThread = 1000;
+            var noThreads = 100;
+            var noOperationsPerThread = 100;
             var noOfRecords = 10;
             Task[] threads = new Task[noThreads];
             for (int i = 0; i < noOfRecords; i++)
