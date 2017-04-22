@@ -131,9 +131,9 @@
     <AdditionalFiles Include="stylecop.json" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Yawn.DataSchemas\Yawn.DataSchemas.csproj">
+    <ProjectReference Include="..\Yawn.DataSchemas\YawnDB.DataSchemas.csproj">
       <Project>{aded1921-6dea-4dce-a31e-5f915d633124}</Project>
-      <Name>Yawn.DataSchemas</Name>
+      <Name>YawnDB.DataSchemas</Name>
     </ProjectReference>
     <ProjectReference Include="..\YawnDB.EventSources\YawnDB.EventSources.csproj">
       <Project>{5c6ca7f9-9663-40b8-a56a-7bb7ed23b5d2}</Project>

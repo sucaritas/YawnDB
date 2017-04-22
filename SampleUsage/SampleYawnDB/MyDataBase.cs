@@ -1,16 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using YawnDB;
-using YawnDB.Interfaces;
-using YawnDB.Storage.BlockStorage;
-using YawnDB.Storage.MemStorage;
-using School;
-
-namespace SampleYawnDB
+﻿namespace SampleYawnDB
 {
+
+    using YawnDB;
+    using YawnDB.Storage.BlockStorage;
+    using YawnDB.Storage.MemStorage;
+    using School;
+
     public class MyDataBase : Yawn
     {
         private string DatabasePath { get; set; }

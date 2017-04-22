@@ -93,9 +93,9 @@
     <Compile Include="YawnDBTests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Yawn.DataSchemas\Yawn.DataSchemas.csproj">
+    <ProjectReference Include="..\Yawn.DataSchemas\YawnDB.DataSchemas.csproj">
       <Project>{aded1921-6dea-4dce-a31e-5f915d633124}</Project>
-      <Name>Yawn.DataSchemas</Name>
+      <Name>YawnDB.DataSchemas</Name>
     </ProjectReference>
     <ProjectReference Include="..\YawnDB\YawnDB.csproj">
       <Project>{ba24655f-e374-4d45-b863-c4c2d006e8da}</Project>

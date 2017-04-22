@@ -1,18 +1,9 @@
 ﻿namespace SampleUsageOfAYawnDB
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Linq.Expressions;
-    using System.Text;
     using System.Threading.Tasks;
-    using System.Reflection;
     using School;
-    using Microsoft.Diagnostics.Tracing.Session;
-    using YawnDB.EventSources;
     using YawnDB.PerformanceCounters;
-    using System.Threading;
-    using System.Data.SqlClient;
 
     class Program
     {
@@ -127,13 +118,7 @@
                 student.FirstName = names[rnd.Next(5)];
                 student.LastName = lastNames[rnd.Next(5)];
 
-                myDB.SaveRecord(student).ContinueWith(loc =>
-                {
-                    if(loc.Result == null)
-                    {
-                        Console.WriteLine("Null at " + i);
-                    }
-                });
+                myDB.SaveRecord(student);
             }
 
 

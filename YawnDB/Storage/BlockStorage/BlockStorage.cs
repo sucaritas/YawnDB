@@ -683,7 +683,7 @@ namespace YawnDB.Storage.BlockStorage
 
             this.cache.Set(instance.Id.ToString(), instance, new CacheItemPolicy());
             StorageEventSource.Log.RecordSerializeFinish(this.FullStorageName, blockStorageLocation.Address);
-            this.perfCounters.RecordWriteFinishedCounter.Increment();
+            this.perfCounters.RecordReadFinishedCounter.Increment();
             return this.PropagateSite(this.cloner.Clone<T>(instance));
         }
 
@@ -738,7 +738,7 @@ namespace YawnDB.Storage.BlockStorage
         {
             lock (this.autoIdLock)
             {
-                Interlocked.Increment(ref this.nextIndex);
+                this.nextIndex++;
             }
 
             return this.nextIndex;

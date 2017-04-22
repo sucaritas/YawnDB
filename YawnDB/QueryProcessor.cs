@@ -15,6 +15,7 @@ namespace YawnDB
     {
         private static Type schemaType = typeof(T);
         private static Type referencingType = typeof(YawnSchema).Assembly.GetType("YawnDB.Referencing`1[" + typeof(T).FullName + "]");
+        private static Type referenceToType = typeof(ReferenceTo<T>);
         private static PropertyInfo refrencedIdsProperty = referencingType?.GetProperty("RefrencedIds");
         private ReferenceTo<T> schemaReference;
 
@@ -66,7 +67,9 @@ namespace YawnDB
 
             // If the "node.Object" is null then this is a static method call
             // therefore the first argument must be the ReferenceTo<T> object which needs to be replaced
-            if (node.Object == null && referencingType.IsAssignableFrom(node.Arguments.First().Type))
+            if (node.Object == null
+                && (referencingType.IsAssignableFrom(node.Arguments.First().Type)
+                || referenceToType.IsAssignableFrom(node.Arguments.First().Type)))
             {
                 var newArgumentList = new List<Expression>()
                 {
@@ -74,15 +77,7 @@ namespace YawnDB
                 };
 
                 newArgumentList.AddRange(node.Arguments.Skip(1));
-
-                if (node.Object == null)
-                {
-                    node = Expression.Call(node.Method, newArgumentList.ToArray());
-                }
-                else
-                {
-                    node = Expression.Call(node.Object, node.Method, newArgumentList.ToArray());
-                }
+                node = Expression.Call(node.Method, newArgumentList.ToArray());
             }
 
             return node;
