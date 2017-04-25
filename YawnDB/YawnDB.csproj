@@ -91,7 +91,6 @@
     <Compile Include="Storage\BlockStorage\BlockProperties.cs" />
     <Compile Include="Storage\BlockStorage\BlockStorageUnlocker.cs" />
     <Compile Include="Storage\IStorage.cs" />
-    <Compile Include="Storage\IStorageLocation.cs" />
     <Compile Include="Storage\StorageLocker.cs" />
     <Compile Include="Storage\BlockStorage\FreeBlocks.cs" />
     <Compile Include="Index\IndexParameters.cs" />
@@ -103,7 +102,6 @@
     <Compile Include="Storage\BlockStorage\BlockStorage.cs" />
     <Compile Include="Storage\MemStorage\MemStorage.cs" />
     <Compile Include="Storage\MemStorage\MemStorageLocation.cs" />
-    <Compile Include="Storage\StorageLocation.cs" />
     <Compile Include="Storage\StorageState.cs" />
     <Compile Include="Storage\StorageSyncLockCounter.cs" />
     <Compile Include="Storage\StorageUnlocker.cs" />
@@ -117,7 +115,7 @@
   <ItemGroup>
     <None Include="app.config" />
     <BondCodegen Include="Storage\BlockStorage\FreeBlocks.bond" />
-    <BondCodegen Include="Index\HashKey\HashKeyStorageFormat.bond" />
+    <BondCodegen Include="Index\HashKey\HashKeyIndex.bond" />
     <None Include="packages.config">
       <Visible>False</Visible>
     </None>

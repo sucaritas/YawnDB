@@ -26,13 +26,11 @@ namespace YawnDB.Index.HashKey
 
         public IList<IndexParameter> IndexParameters { get; } = new List<IndexParameter>();
 
-        private ConcurrentDictionary<string, IStorageLocation> indexData = new ConcurrentDictionary<string, IStorageLocation>();
-
         private string folderPath;
 
         private string filePath;
 
-        public bool SetIndex(YawnSchema objectToIndex, IStorageLocation dataToIndex)
+        public bool SetIndex<T>(YawnSchema objectToIndex, T dataToIndex) where T : IBonded<StorageLocation>
         {
             if (objectToIndex == null || dataToIndex == null)
             {
@@ -42,7 +40,7 @@ namespace YawnDB.Index.HashKey
             var key = this.Getkey(objectToIndex);
             if (key != null)
             {
-                this.indexData[key] = dataToIndex;
+                this.IndexData[key] = dataToIndex;
                 return true;
             }
 
@@ -59,19 +57,19 @@ namespace YawnDB.Index.HashKey
             var key = this.Getkey(objectToIndex);
             if (key != null)
             {
-                IStorageLocation val;
-                return this.indexData.TryRemove(key, out val);
+                IBonded<StorageLocation> val;
+                return this.IndexData.TryRemove(key, out val);
             }
 
             return false;
         }
 
-        public IEnumerable<IStorageLocation> GetStorageLocations(IIdexArguments inputParams)
+        public IEnumerable<IBonded<StorageLocation>> GetStorageLocations(IIdexArguments inputParams)
         {
-            IStorageLocation result;
+            IBonded<StorageLocation> result;
             foreach (var key in this.GetKeyFromIndexArguments(inputParams))
             {
-                if (this.indexData.TryGetValue(key, out result))
+                if (this.IndexData.TryGetValue(key, out result))
                 {
                     yield return result;
                 }
@@ -95,7 +93,7 @@ namespace YawnDB.Index.HashKey
             return key;
         }
 
-        public IStorageLocation GetLocationForInstance(YawnSchema instance)
+        public IBonded<StorageLocation> GetLocationForInstance(YawnSchema instance)
         {
             var key = this.Getkey(instance);
             if (string.IsNullOrEmpty(key))
@@ -103,8 +101,8 @@ namespace YawnDB.Index.HashKey
                 return null;
             }
 
-            IStorageLocation value;
-            this.indexData.TryGetValue(key, out value);
+            IBonded<StorageLocation> value;
+            this.IndexData.TryGetValue(key, out value);
             return value;
         }
 
@@ -163,9 +161,9 @@ namespace YawnDB.Index.HashKey
             return max;
         }
 
-        public IEnumerable<IStorageLocation> EnumerateAllLocations()
+        public IEnumerable<IBonded<StorageLocation>> EnumerateAllLocations()
         {
-            var enumerator = this.indexData.Values.GetEnumerator();
+            var enumerator = this.IndexData.Values.GetEnumerator();
             while (enumerator.MoveNext())
             {
                 if (enumerator.Current == null)
@@ -199,31 +197,17 @@ namespace YawnDB.Index.HashKey
 
         public bool SaveDataToPath(string path)
         {
-            HashKeyStorageFormat storageFormat = new HashKeyStorageFormat();
-            Serializer<CompactBinaryWriter<OutputBuffer>> schemaDeserializer = new Serializer<CompactBinaryWriter<OutputBuffer>>(this.StorageLocationType);
-
-            foreach (var kv in this.indexData)
+            try
             {
                 var output = new OutputBuffer();
                 var writer = new CompactBinaryWriter<OutputBuffer>(output);
-                schemaDeserializer.Serialize(kv.Value, writer);
-                byte[] bits = new byte[output.Data.Count];
-                Buffer.BlockCopy(output.Data.Array, output.Data.Offset, bits, 0, output.Data.Count);
-                storageFormat.StoredData.Add(kv.Key, new ArraySegment<byte>(bits));
+                Serialize.To(writer, this);
+                File.WriteAllBytes(path, output.Data.ToArray());
             }
-
-            var diskOutput = new OutputBuffer();
-            var diskWriter = new CompactBinaryWriter<OutputBuffer>(diskOutput);
-            Serializer<CompactBinaryWriter<OutputBuffer>> schemaSerializer = new Serializer<CompactBinaryWriter<OutputBuffer>>(typeof(HashKeyStorageFormat));
-            schemaSerializer.Serialize(storageFormat, diskWriter);
-            byte[] diskBits = new byte[diskOutput.Data.Count];
-            Buffer.BlockCopy(diskOutput.Data.Array, diskOutput.Data.Offset, diskBits, 0, diskOutput.Data.Count);
-            File.WriteAllBytes(path, diskBits);
-
-            var diskInput = new InputBuffer(diskBits);
-            var diskReader = new CompactBinaryReader<InputBuffer>(diskInput);
-            Deserializer<CompactBinaryReader<InputBuffer>> deserializer = new Deserializer<CompactBinaryReader<InputBuffer>>(this.StorageLocationType);
-            HashKeyStorageFormat diskData = deserializer.Deserialize<HashKeyStorageFormat>(diskReader);
+            catch
+            {
+                return false;
+            }
 
             return true;
         }
@@ -235,33 +219,25 @@ namespace YawnDB.Index.HashKey
                 return false;
             }
 
-            var diskInput = new InputStream(new FileStream(this.filePath, FileMode.Open));
-            var diskReader = new CompactBinaryReader<InputStream>(diskInput);
-            Deserializer<CompactBinaryReader<InputStream>> deserializer = new Deserializer<CompactBinaryReader<InputStream>>(this.StorageLocationType);
-
-            HashKeyStorageFormat diskData = deserializer.Deserialize<HashKeyStorageFormat>(diskReader);
-
-            Deserializer<CompactBinaryReader<InputBuffer>> schemaDeserializer = new Deserializer<CompactBinaryReader<InputBuffer>>(this.StorageLocationType);
-
-            foreach (var kv in diskData.StoredData)
+            try
             {
-                var input = new InputBuffer(kv.Value);
-                var reader = new CompactBinaryReader<InputBuffer>(input);
-                IStorageLocation location = schemaDeserializer.Deserialize(reader) as IStorageLocation;
-                if (location != null)
+                using (var fileStream = File.OpenRead(path))
                 {
-                    this.indexData.TryAdd(kv.Key, location);
+                    var input = new InputStream(fileStream);
+                    var reader = new CompactBinaryReader<InputStream>(input);
+                    var temp = Deserialize<HashKeyIndex>.From(reader);
+                    this.IndexData = temp.IndexData;
                 }
-                else
-                {
-                    return false;
-                }
+            }
+            catch
+            {
+                return false;
             }
 
             return true;
         }
 
-        public bool UpdateIndex(YawnSchema oldRecord, YawnSchema newRecord, IStorageLocation storageLocation)
+        public bool UpdateIndex(YawnSchema oldRecord, YawnSchema newRecord, IBonded<StorageLocation> storageLocation)
         {
             this.DeleteIndex(oldRecord);
             this.SetIndex(newRecord, storageLocation);

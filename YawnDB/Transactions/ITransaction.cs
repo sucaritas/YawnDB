@@ -16,7 +16,7 @@ namespace YawnDB.Transactions
 
         bool Rollback();
 
-        IStorageLocation SaveRecord(YawnSchema instanceToSave);
+        StorageLocation SaveRecord(YawnSchema instanceToSave);
 
         bool DeleteRecord(YawnSchema instance);
 

@@ -1,6 +1,0 @@
-﻿namespace YawnDB.Index.HashKey
-
-struct HashKeyStorageFormat
-{
-    0: map<string, blob> StoredData;
-}

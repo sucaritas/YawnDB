@@ -88,14 +88,14 @@ namespace YawnDB.Transactions
             return true;
         }
 
-        public IStorageLocation SaveRecord(YawnSchema instanceToSave)
+        public StorageLocation SaveRecord(YawnSchema instanceToSave)
         {
-            return default(IStorageLocation);
+            return this.YawnSite.SaveRecord(instanceToSave, this);
         }
 
         public bool DeleteRecord(YawnSchema instance)
         {
-            return false;
+            return this.YawnSite.DeleteRecord(instance, this);
         }
 
         public void AddTransactionItem<T>(T transactionItem) where T : TransactionItem

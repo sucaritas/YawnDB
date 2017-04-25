@@ -4,7 +4,7 @@
 
 namespace YawnDB.Storage.MemStorage
 {
-    public class MemStorageLocation : IStorageLocation
+    public class MemStorageLocation : StorageLocation
     {
         public long Id { get; set; }
     }

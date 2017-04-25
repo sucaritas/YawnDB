@@ -200,17 +200,17 @@ namespace YawnDB.Storage.BlockStorage
             this.perfCounters.InitializeCounter.Increment();
         }
 
-        public IStorageLocation InsertRecord(YawnSchema instanceToInsert)
+        public StorageLocation InsertRecord(YawnSchema instanceToInsert)
         {
             return this.SaveRecord(instanceToInsert);
         }
 
-        public IStorageLocation InsertRecord(YawnSchema instanceToInsert, ITransaction transaction)
+        public StorageLocation InsertRecord(YawnSchema instanceToInsert, ITransaction transaction)
         {
             return this.SaveRecord(instanceToInsert, transaction);
         }
 
-        public IStorageLocation SaveRecord(YawnSchema inputInstance, ITransaction transaction)
+        public StorageLocation SaveRecord(YawnSchema inputInstance, ITransaction transaction)
         {
             if (this.State == StorageState.Closed)
             {
@@ -324,7 +324,7 @@ namespace YawnDB.Storage.BlockStorage
             }
             else
             {
-                this.UpdateIndeciesForInstance(existingInstance, instance, location as StorageLocation);
+                this.UpdateIndeciesForInstance(existingInstance, instance, new Bonded<BlockStorageLocation>(location));
                 if (existingInstance != null)
                 {
                     // We dont remove the old instance from the cache as there may be some queries that are still pending to pull it
@@ -357,7 +357,7 @@ namespace YawnDB.Storage.BlockStorage
             }
         }
 
-        public IStorageLocation SaveRecord(YawnSchema inputInstance)
+        public StorageLocation SaveRecord(YawnSchema inputInstance)
         {
             return this.SaveRecord(inputInstance, null);
         }
@@ -427,7 +427,7 @@ namespace YawnDB.Storage.BlockStorage
                 }
             }
 
-            this.UpdateIndeciesForInstance(oldInstance, newInstance, location as StorageLocation);
+            this.UpdateIndeciesForInstance(oldInstance, newInstance, new Bonded<BlockStorageLocation>(location));
             StorageEventSource.Log.RecordWriteFinish(this.FullStorageName, newInstance.Id);
             return true;
         }
@@ -462,7 +462,7 @@ namespace YawnDB.Storage.BlockStorage
                 {
                     AbsoluteExpiration = new DateTimeOffset(DateTimeOffset.Now.Ticks, new TimeSpan(0, 5, 0))
                 });
-                this.UpdateIndeciesForInstance(newInstance, oldInstance, new BlockStorageLocation() { Id = oldInstance.Id, Address = item.OriginalAddresses.First() });
+                this.UpdateIndeciesForInstance(newInstance, oldInstance, new Bonded<BlockStorageLocation>(new BlockStorageLocation() { Id = oldInstance.Id, Address = item.OriginalAddresses.First() }));
             }
 
             return true;
@@ -587,7 +587,7 @@ namespace YawnDB.Storage.BlockStorage
             }
         }
 
-        private void UpdateIndeciesForInstance(YawnSchema oldRecord, YawnSchema newRecord, StorageLocation newLocation)
+        private void UpdateIndeciesForInstance(YawnSchema oldRecord, YawnSchema newRecord, IBonded<StorageLocation> newLocation)
         {
             StorageEventSource.Log.IndexingStart(this.FullStorageName, newRecord.Id);
             this.perfCounters.IndexingStartCounter.Increment();
@@ -613,7 +613,7 @@ namespace YawnDB.Storage.BlockStorage
             this.perfCounters.IndexingFinishedCounter.Increment();
         }
 
-        public T ReadRecord(IStorageLocation fromLocation)
+        public T ReadRecord(StorageLocation fromLocation)
         {
             if (this.State == StorageState.Closed)
             {
@@ -702,7 +702,7 @@ namespace YawnDB.Storage.BlockStorage
             return blockSize;
         }
 
-        public IEnumerable<TE> GetRecords<TE>(IEnumerable<IStorageLocation> recordsToPull) where TE : YawnSchema
+        public IEnumerable<TE> GetRecords<TE>(IEnumerable<IBonded<StorageLocation>> recordsToPull) where TE : YawnSchema
         {
             if (recordsToPull == null)
             {
@@ -716,7 +716,7 @@ namespace YawnDB.Storage.BlockStorage
                     continue;
                 }
 
-                yield return this.ReadRecord(location) as TE;
+                yield return this.ReadRecord(location.Deserialize<BlockStorageLocation>()) as TE;
             }
 
             yield break;
@@ -847,7 +847,7 @@ namespace YawnDB.Storage.BlockStorage
 
                             foreach (var index in needReindexing)
                             {
-                                index.SetIndex(record, location as StorageLocation);
+                                index.SetIndex(record, new Bonded<BlockStorageLocation>(location));
                             }
                         }
                     }
@@ -863,7 +863,7 @@ namespace YawnDB.Storage.BlockStorage
 
                 foreach (var index in this.Indicies)
                 {
-                    index.Value.Close(false);
+                    index.Value.Close(true);
                 }
 
                 this.freeBlocks.SaveToFile();
@@ -882,9 +882,9 @@ namespace YawnDB.Storage.BlockStorage
             return instance;
         }
 
-        public IEnumerable<IStorageLocation> GetStorageLocations(IIdexArguments queryParams)
+        public IEnumerable<IBonded<StorageLocation>> GetStorageLocations(IIdexArguments queryParams)
         {
-            List<IStorageLocation> locations = new List<IStorageLocation>();
+            List<IBonded<StorageLocation>> locations = new List<IBonded<StorageLocation>>();
             foreach (var index in this.Indicies)
             {
                 locations.AddRange(index.Value.GetStorageLocations(queryParams));
@@ -932,7 +932,7 @@ namespace YawnDB.Storage.BlockStorage
         private long GetExistingAddress(YawnSchema instance)
         {
             var keyIndex = this.Indicies["YawnKeyIndex"];
-            var existingLocation = keyIndex.GetLocationForInstance(instance) as BlockStorageLocation;
+            var existingLocation = keyIndex.GetLocationForInstance(instance).Deserialize<BlockStorageLocation>();
             if (existingLocation != null)
             {
                 return existingLocation.Address;

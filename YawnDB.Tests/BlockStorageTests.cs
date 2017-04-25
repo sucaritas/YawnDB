@@ -230,7 +230,10 @@
             var writeResult = writeRandomPersonToStorage(storage);
             var index = storage.Indicies["YawnKeyIndex"] as HashKeyIndex;
             var locationInIndex = index.GetLocationForInstance(writeResult.Item1);
-            Assert.AreEqual(writeResult.Item2, locationInIndex);
+            var expected = writeResult.Item2 as BlockStorageLocation;
+            var actual = locationInIndex.Deserialize<BlockStorageLocation>();
+            Assert.AreEqual(expected.Address, actual.Address);
+            Assert.AreEqual(expected.Id, actual.Id);
             yawnDB.Close();
         }
 
@@ -274,8 +277,12 @@
 
             var index = storage.Indicies["YawnKeyIndex"] as HashKeyIndex;
             var locationInIndex = index.GetLocationForInstance(writeResult.Item1) as BlockStorageLocation;
-            var anotherLocationInIndex = index.GetLocationForInstance(anotherPerson) as BlockStorageLocation;
-            Assert.AreNotEqual((writeResult.Item2 as BlockStorageLocation).Address, anotherLocationInIndex.Address);
+            var anotherLocationInIndex = index.GetLocationForInstance(anotherPerson);
+
+            var expected = writeResult.Item2 as BlockStorageLocation;
+            var actual = anotherLocationInIndex.Deserialize<BlockStorageLocation>();
+            Assert.AreNotEqual(expected.Address, actual.Address);
+            Assert.AreEqual(expected.Id, actual.Id);
             yawnDB.Close();
         }
     }

@@ -1,6 +1,6 @@
 ﻿namespace MonitoringExampleProgram
 {
-    partial class Form1
+    partial class MonitoringExample
     {
         /// <summary>
         /// Required designer variable.
@@ -28,7 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MonitoringExample));
             this.SysMonitorControl = new AxSystemMonitor.AxSystemMonitor();
             this.NoOfItems = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
@@ -75,8 +75,8 @@
             // 
             // SysMonitorControl
             // 
-            this.SysMonitorControl.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
+            this.SysMonitorControl.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.SysMonitorControl.Enabled = true;
             this.SysMonitorControl.Location = new System.Drawing.Point(12, 305);
@@ -477,7 +477,7 @@
             // 
             // ErrorsTxt
             // 
-            this.ErrorsTxt.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.ErrorsTxt.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.ErrorsTxt.Location = new System.Drawing.Point(575, 84);
             this.ErrorsTxt.Multiline = true;

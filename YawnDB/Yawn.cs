@@ -10,6 +10,7 @@ namespace YawnDB
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+    using Bond;
     using YawnDB.Exceptions;
     using YawnDB.Index;
     using YawnDB.Locking;
@@ -102,7 +103,7 @@ namespace YawnDB
             return storage.CreateRecord() as T;
         }
 
-        public IStorageLocation SaveRecord(YawnSchema instance, ITransaction transaction)
+        public StorageLocation SaveRecord(YawnSchema instance, ITransaction transaction)
         {
             if (!this.TransactionsEnabled)
             {
@@ -114,7 +115,7 @@ namespace YawnDB
             return storage.SaveRecord(instance, transaction);
         }
 
-        public IStorageLocation SaveRecord(YawnSchema instance)
+        public StorageLocation SaveRecord(YawnSchema instance)
         {
             IStorage storage;
             this.RegisteredStorageTypes.TryGetValue(instance.GetType(), out storage);
@@ -266,7 +267,7 @@ namespace YawnDB
             if (this.RegisteredStorageTypes.TryGetValue(typeof(T), out storage))
             {
                 IIndex keyIndex = storage.Indicies["YawnKeyIndex"];
-                IStorageLocation location = keyIndex.GetLocationForInstance(new YawnSchema() { Id = id });
+                IBonded<StorageLocation> location = keyIndex.GetLocationForInstance(new YawnSchema() { Id = id });
                 return storage.GetRecords<T>(new[] { location }).FirstOrDefault();
             }
 

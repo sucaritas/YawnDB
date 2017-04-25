@@ -126,7 +126,11 @@
             var location = storage.SaveRecord(trans);
             var index = storage.Indicies["YawnKeyIndex"] as HashKeyIndex;
             var locationInIndex = index.GetLocationForInstance(trans);
-            Assert.AreEqual(location, locationInIndex);
+
+            var expected = location as BlockStorageLocation;
+            var actual = locationInIndex.Deserialize<BlockStorageLocation>();
+            Assert.AreEqual(expected.Address, actual.Address);
+            Assert.AreEqual(expected.Id, actual.Id);
 
             var read = storage.ReadRecord(location);
 

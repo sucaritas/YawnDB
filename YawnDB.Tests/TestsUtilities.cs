@@ -25,7 +25,7 @@
             System.IO.Directory.CreateDirectory(folder);
         }
 
-        public static Tuple<Person, IStorageLocation> writeRandomPersonToStorage(IStorage storage)
+        public static Tuple<Person, StorageLocation> writeRandomPersonToStorage(IStorage storage)
         {
             string[] names = new[] { "Julio", "Miguel", "Marco", "Omar", "Rene" };
             string[] lastNames = new[] { "Saenz", "Telles", "Ruelas", "Quirino", "Sandoval" };
@@ -43,7 +43,7 @@
                 throw new Exception("write execption");
             }
 
-            return new Tuple<Person, IStorageLocation>(student, location);
+            return new Tuple<Person, StorageLocation>(student, location);
         }
     }
 }

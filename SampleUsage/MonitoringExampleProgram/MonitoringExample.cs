@@ -13,7 +13,7 @@
     using SystemMonitor;
     using School;
 
-    public partial class Form1 : Form
+    public partial class MonitoringExample : Form
     {
         private SampleYawnDB.MyDataBase myDB = new SampleYawnDB.MyDataBase(@".\SchoolDatabase");
         private bool isOpened = false;
@@ -26,7 +26,7 @@
         private object createSyncLock = new object();
         private List<string> errors = new List<string>();
 
-        public Form1()
+        public MonitoringExample()
         {
             InitializeComponent();
             myDB.Open(false);

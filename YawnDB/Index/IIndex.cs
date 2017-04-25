@@ -22,15 +22,15 @@ namespace YawnDB.Index
 
         IList<IndexParameter> IndexParameters { get; }
 
-        IEnumerable<IStorageLocation> GetStorageLocations(IIdexArguments inputArguments);
+        IEnumerable<IBonded<StorageLocation>> GetStorageLocations(IIdexArguments inputArguments);
 
-        IStorageLocation GetLocationForInstance(YawnSchema instance);
+        IBonded<StorageLocation> GetLocationForInstance(YawnSchema instance);
 
-        IEnumerable<IStorageLocation> EnumerateAllLocations();
+        IEnumerable<IBonded<StorageLocation>> EnumerateAllLocations();
 
-        bool SetIndex(YawnSchema instance, IStorageLocation storageLocation);
+        bool SetIndex<T>(YawnSchema objectToIndex, T dataToIndex) where T : IBonded<StorageLocation>;
 
-        bool UpdateIndex(YawnSchema oldRecord, YawnSchema newRecord, IStorageLocation storageLocation);
+        bool UpdateIndex(YawnSchema oldRecord, YawnSchema newRecord, IBonded<StorageLocation> storageLocation);
 
         bool DeleteIndex(YawnSchema instance);
 

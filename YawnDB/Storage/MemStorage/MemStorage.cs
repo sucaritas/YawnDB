@@ -78,22 +78,22 @@ namespace YawnDB.Storage.MemStorage
             this.perfCounters = new StorageCounters(this.FullStorageName);
         }
 
-        public IStorageLocation InsertRecord(YawnSchema instanceToInsert)
+        public StorageLocation InsertRecord(YawnSchema instanceToInsert)
         {
             return this.SaveRecord(instanceToInsert);
         }
 
-        public IStorageLocation InsertRecord(YawnSchema instanceToInsert, ITransaction transaction)
+        public StorageLocation InsertRecord(YawnSchema instanceToInsert, ITransaction transaction)
         {
             return this.SaveRecord(instanceToInsert, transaction);
         }
 
-        public IStorageLocation SaveRecord(YawnSchema inputInstance)
+        public StorageLocation SaveRecord(YawnSchema inputInstance)
         {
             return this.SaveRecord(inputInstance, null);
         }
 
-        public IStorageLocation SaveRecord(YawnSchema instanceToSave, ITransaction transaction)
+        public StorageLocation SaveRecord(YawnSchema instanceToSave, ITransaction transaction)
         {
             if (this.State == StorageState.Closed)
             {
@@ -144,7 +144,7 @@ namespace YawnDB.Storage.MemStorage
             this.perfCounters.IndexingStartCounter.Increment();
             foreach (var index in this.Indicies.Values)
             {
-                index.UpdateIndex(existingInstance, instance, new MemStorageLocation() { Id = instance.Id });
+                index.UpdateIndex(existingInstance, instance, new Bonded<MemStorageLocation>(new MemStorageLocation() { Id = instance.Id }));
             }
 
             StorageEventSource.Log.IndexingFinish(this.FullStorageName, instance.Id);
@@ -199,13 +199,13 @@ namespace YawnDB.Storage.MemStorage
 
         private List<PropertyInfo> referencingProperties = new List<PropertyInfo>();
 
-        public IEnumerable<TE> GetRecords<TE>(IEnumerable<IStorageLocation> recordsToPull) where TE : YawnSchema
+        public IEnumerable<TE> GetRecords<TE>(IEnumerable<IBonded<StorageLocation>> recordsToPull) where TE : YawnSchema
         {
             List<T> records = new List<T>();
             foreach (var location in recordsToPull)
             {
                 T record;
-                if (this.itemsInMemmory.TryGetValue((location as MemStorageLocation).Id, out record))
+                if (this.itemsInMemmory.TryGetValue(location.Deserialize<MemStorageLocation>().Id, out record))
                 {
                     yield return record as TE;
                 }
@@ -248,7 +248,7 @@ namespace YawnDB.Storage.MemStorage
                 this.perfCounters.IndexingStartCounter.Increment();
                 foreach (var index in needReindexing)
                 {
-                    index.SetIndex(record, new MemStorageLocation() { Id = record.Id });
+                    index.SetIndex(record, new Bonded<MemStorageLocation>(new MemStorageLocation() { Id = record.Id }));
                 }
 
                 this.perfCounters.IndexingFinishedCounter.Increment();
@@ -274,9 +274,9 @@ namespace YawnDB.Storage.MemStorage
             return instance;
         }
 
-        public IEnumerable<IStorageLocation> GetStorageLocations(IIdexArguments queryParams)
+        public IEnumerable<IBonded<StorageLocation>> GetStorageLocations(IIdexArguments queryParams)
         {
-            List<IStorageLocation> locations = new List<IStorageLocation>();
+            List<IBonded<StorageLocation>> locations = new List<IBonded<StorageLocation>>();
             foreach (var index in this.Indicies)
             {
                 locations.AddRange(index.Value.GetStorageLocations(queryParams));

@@ -46,9 +46,9 @@ namespace YawnDB
 
         void PurgeTransactionLog();
 
-        IStorageLocation SaveRecord(YawnSchema instance);
+        StorageLocation SaveRecord(YawnSchema instance);
 
-        IStorageLocation SaveRecord(YawnSchema instance, ITransaction transaction);
+        StorageLocation SaveRecord(YawnSchema instance, ITransaction transaction);
 
         bool DeleteRecord(YawnSchema instance);
 

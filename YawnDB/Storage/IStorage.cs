@@ -21,23 +21,23 @@ namespace YawnDB.Storage
 
         StorageState State { get; }
 
-        IEnumerable<TE> GetRecords<TE>(IEnumerable<IStorageLocation> recordsToPull) where TE : YawnSchema;
+        IEnumerable<TE> GetRecords<TE>(IEnumerable<IBonded<StorageLocation>> recordsToPull) where TE : YawnSchema;
 
         IEnumerable<TE> GetAllRecords<TE>() where TE : YawnSchema;
 
-        IEnumerable<IStorageLocation> GetStorageLocations(IIdexArguments queryParams);
+        IEnumerable<IBonded<StorageLocation>> GetStorageLocations(IIdexArguments queryParams);
 
         void Open();
 
         void Close();
 
-        IStorageLocation InsertRecord(YawnSchema instanceToInsert);
+        StorageLocation InsertRecord(YawnSchema instanceToInsert);
 
-        IStorageLocation InsertRecord(YawnSchema instanceToInsert, ITransaction transaction);
+        StorageLocation InsertRecord(YawnSchema instanceToInsert, ITransaction transaction);
 
-        IStorageLocation SaveRecord(YawnSchema instanceToSave);
+        StorageLocation SaveRecord(YawnSchema instanceToSave);
 
-        IStorageLocation SaveRecord(YawnSchema instanceToSave, ITransaction transaction);
+        StorageLocation SaveRecord(YawnSchema instanceToSave, ITransaction transaction);
 
         bool DeleteRecord(YawnSchema instance);
 

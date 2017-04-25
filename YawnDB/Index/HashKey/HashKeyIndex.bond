@@ -1,0 +1,9 @@
+﻿import "..\..\storage\StorageLocation.bond"
+namespace YawnDB.Index.HashKey
+
+using ConcurrentDictionary<K,V> = map<K,V>;
+
+struct HashKeyIndex
+{
+    0: ConcurrentDictionary<string, bonded<YawnDB.Storage.StorageLocation>> IndexData;
+}
