@@ -6,8 +6,7 @@
     using System.Linq.Expressions;
     using System.Text;
     using System.Threading.Tasks;
-    using YawnDB.Interfaces;
-
+    using YawnDB.Storage;
 
     public class QueryParser : IQueryProvider
     {
@@ -57,9 +56,14 @@
         {
             Console.WriteLine(expression.ToString());
             IStorage storage;
-            this.YawnSite.TryGetStorage(typeof(T), out storage);
-            var items = (storage as IStorageOf<T>).ExecuteQuery();
+            this.YawnSite.TryGetStorage(typeof(TResult), out storage);
+            var items = (storage as IStorageOf<TResult>).ExecuteQuery();
             return (TResult)(object)items;
+        }
+
+        public object Execute(Expression expression)
+        {
+            return this.Execute(expression);
         }
     }
 }
